@@ -11,16 +11,16 @@ type Scaffolder interface {
 }
 
 type scaffolder struct {
-	logWriter logger.Logger
+	logger logger.Logger
 }
 
 func New(l logger.Logger) Scaffolder {
 	return &scaffolder{
-		logWriter: l,
+		logger: l,
 	}
 }
 
-func (s *scaffolder) Scaffold(d string, n string) error {
+func (s *scaffolder) Scaffold(d string, _ string) error {
 	if _, statErr := os.Stat(d); !os.IsNotExist(statErr) {
 		return errors.New("directory already exists at " + d)
 	}

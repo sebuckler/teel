@@ -16,9 +16,9 @@ type CommandLineInterface interface {
 }
 
 type commandLineInterface struct {
-	blogScaffolder scaffolder.Scaffolder
-	logWriter      logger.Logger
-	rootCmd        *cobra.Command
+	scaffolder scaffolder.Scaffolder
+	logger     logger.Logger
+	rootCmd    *cobra.Command
 }
 
 func New(v string, s scaffolder.Scaffolder, l logger.Logger, d string) CommandLineInterface {
@@ -28,21 +28,21 @@ func New(v string, s scaffolder.Scaffolder, l logger.Logger, d string) CommandLi
 	handleSigterm(l)
 
 	return &commandLineInterface{
-		blogScaffolder: s,
-		logWriter:      l,
-		rootCmd:        rootCmd,
+		scaffolder: s,
+		logger:     l,
+		rootCmd:    rootCmd,
 	}
 }
 
 func (c *commandLineInterface) Execute() {
-	c.logWriter.Log("--commandLineInterface.Execute()")
+	c.logger.Log("--commandLineInterface.Execute()")
 
 	if err := c.rootCmd.Execute(); err != nil {
 		fmt.Printf("Error: failed to execute command: %v\n", err)
 		os.Exit(1)
 	}
 
-	c.logWriter.Log("--finished commandLineInterface.Execute()")
+	c.logger.Log("--finished commandLineInterface.Execute()")
 }
 
 func handleSigterm(l logger.Logger) {
