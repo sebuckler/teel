@@ -7,8 +7,6 @@ import (
 	"github.com/sebuckler/teel/internal/scaffolder"
 	"github.com/spf13/cobra"
 	"os"
-	"os/signal"
-	"syscall"
 )
 
 type CommandLineInterface interface {
@@ -16,21 +14,20 @@ type CommandLineInterface interface {
 }
 
 type commandLineInterface struct {
-	scaffolder scaffolder.Scaffolder
 	logger     logger.Logger
 	rootCmd    *cobra.Command
+	scaffolder scaffolder.Scaffolder
 }
 
-func New(v string, s scaffolder.Scaffolder, l logger.Logger, d string) CommandLineInterface {
+func New(d string, l logger.Logger, s scaffolder.Scaffolder, v string) CommandLineInterface {
 	rootCmd := commands.NewRoot(v)
 
 	rootCmd.AddCommand(commands.NewCreate(s, l, d).Command)
-	handleSigterm(l)
 
 	return &commandLineInterface{
-		scaffolder: s,
 		logger:     l,
 		rootCmd:    rootCmd,
+		scaffolder: s,
 	}
 }
 
@@ -43,20 +40,4 @@ func (c *commandLineInterface) Execute() {
 	}
 
 	c.logger.Log("--finished commandLineInterface.Execute()")
-}
-
-func handleSigterm(l logger.Logger) {
-	signalChannel := make(chan os.Signal, 3)
-
-	signal.Notify(signalChannel, os.Kill, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		sig := <-signalChannel
-		switch sig {
-		case os.Kill:
-		case os.Interrupt:
-		case syscall.SIGTERM:
-			l.Write()
-		}
-	}()
 }

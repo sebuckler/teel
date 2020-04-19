@@ -1,16 +1,8 @@
 package logger
 
 import (
-	"bufio"
+	"io"
 	"log"
-	"os"
-)
-
-type writeMode string
-
-const (
-	BUFFERED  writeMode = "BUFFERED"
-	IMMEDIATE writeMode = "IMMEDIATE"
 )
 
 type Logger interface {
@@ -18,78 +10,36 @@ type Logger interface {
 	Errorf(f string, v ...interface{})
 	Log(v ...interface{})
 	Logf(f string, v ...interface{})
-	Write()
 }
 
 type logger struct {
-	flushErr func() error
-	flushOut func() error
-	stderr   *log.Logger
-	stdout   *log.Logger
-	mode     writeMode
+	errLogger *log.Logger
+	outLogger *log.Logger
 }
 
-func NewFile(f *os.File, m writeMode) Logger {
-	fileWriter := bufio.NewWriter(f)
-
-	return newLogger(fileWriter, nil, m)
-}
-
-func NewStandard(m writeMode) Logger {
-	stdoutWriter := bufio.NewWriter(os.Stdout)
-	stderrWriter := bufio.NewWriter(os.Stderr)
-
-	return newLogger(stdoutWriter, stderrWriter, m)
-}
-
-func (l *logger) Error(v ...interface{}) {
-	l.stderr.Println(v...)
-	l.tryFlush()
-}
-
-func (l *logger) Errorf(f string, v ...interface{}) {
-	l.stderr.Printf(f, v...)
-	l.tryFlush()
-}
-
-func (l *logger) Log(v ...interface{}) {
-	l.stdout.Println(v...)
-	l.tryFlush()
-}
-
-func (l *logger) Logf(f string, v ...interface{}) {
-	l.stdout.Printf(f, v...)
-	l.tryFlush()
-}
-
-func (l *logger) Write() {
-	l.flush()
-}
-
-func (l *logger) flush() {
-	_ = l.flushErr()
-	_ = l.flushOut()
-}
-
-func (l *logger) tryFlush() {
-	if l.mode == IMMEDIATE {
-		l.flush()
-	}
-}
-
-func newLogger(o *bufio.Writer, e *bufio.Writer, m writeMode) Logger {
+func New(o io.Writer, e io.Writer) Logger {
 	if e == nil {
 		e = o
 	}
 
-	stderrLogger := log.New(e, "", log.LstdFlags)
-	stdoutLogger := log.New(o, "", log.LstdFlags)
-
 	return &logger{
-		flushErr: e.Flush,
-		flushOut: o.Flush,
-		stderr:   stderrLogger,
-		stdout:   stdoutLogger,
-		mode:     m,
+		errLogger: log.New(e, "Error: ", log.LstdFlags),
+		outLogger: log.New(o, "Log: ", log.LstdFlags),
 	}
+}
+
+func (l *logger) Error(v ...interface{}) {
+	l.errLogger.Println(v...)
+}
+
+func (l *logger) Errorf(f string, v ...interface{}) {
+	l.errLogger.Printf(f, v...)
+}
+
+func (l *logger) Log(v ...interface{}) {
+	l.outLogger.Println(v...)
+}
+
+func (l *logger) Logf(f string, v ...interface{}) {
+	l.outLogger.Printf(f, v...)
 }
