@@ -3,8 +3,8 @@ package scaffolder
 import (
 	"errors"
 	"github.com/sebuckler/teel/internal/logger"
+	"github.com/sebuckler/teel/internal/scaffolder/directives"
 	"os"
-	"path"
 )
 
 type Scaffolder interface {
@@ -12,12 +12,14 @@ type Scaffolder interface {
 }
 
 type scaffolder struct {
-	logger logger.Logger
+	directives []directives.Directive
+	logger     logger.Logger
 }
 
-func New(l logger.Logger) Scaffolder {
+func New(l logger.Logger, d ...directives.Directive) Scaffolder {
 	return &scaffolder{
-		logger: l,
+		directives: d,
+		logger:     l,
 	}
 }
 
@@ -30,25 +32,13 @@ func (s *scaffolder) Scaffold(d string, n string) error {
 		return errors.New("name must be provided")
 	}
 
-	mkdirErr := os.MkdirAll(d, 0755)
+	for _, directive := range s.directives {
+		execErr := directive.Execute(d, n)
 
-	if mkdirErr != nil {
-		return mkdirErr
+		if execErr != nil {
+			return execErr
+		}
 	}
-
-	s.makeServer(d, n)
 
 	return nil
-}
-
-func (s *scaffolder) makeServer(d string, n string) error {
-	mkdirErr := os.Mkdir(path.Join(d, "server/"), 0755)
-
-	if mkdirErr != nil {
-		return mkdirErr
-	}
-
-	_, fileErr := os.OpenFile("config.json", os.O_RDWR|os.O_APPEND|os.O_CREATE, 0755)
-
-	return fileErr
 }

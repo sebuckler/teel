@@ -6,6 +6,7 @@ import (
 	"github.com/sebuckler/teel/internal/filestreamer"
 	"github.com/sebuckler/teel/internal/logger"
 	"github.com/sebuckler/teel/internal/scaffolder"
+	"github.com/sebuckler/teel/internal/scaffolder/directives"
 	"github.com/sebuckler/teel/internal/sighandler"
 	"os"
 )
@@ -17,7 +18,7 @@ func main() {
 	streamErr := fileStreamer.Stream(func(f *filestreamer.StreamFile) {
 		signalHandler := sighandler.New()
 		fileLogger := logger.New(f, nil)
-		blogScaffolder := scaffolder.New(fileLogger)
+		blogScaffolder := scaffolder.New(fileLogger, directives.NewConfig())
 
 		signalHandler.Handle(func(os.Signal) { _ = f.Flush() }, os.Kill, os.Interrupt)
 		cli.New(f.Cwd, fileLogger, blogScaffolder, version).Execute()

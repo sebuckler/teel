@@ -39,7 +39,7 @@ func New(b BasePath, p ...string) Streamer {
 }
 
 func (f *streamer) Stream(s streamFunc) error {
-	var basePath, cwd, home, root string
+	var basePath, cwd, home string
 	var err error
 	cwd, err = os.Getwd()
 
@@ -50,8 +50,7 @@ func (f *streamer) Stream(s streamFunc) error {
 		home, err = os.UserHomeDir()
 		basePath = home
 	case ROOT:
-		root, err = "", nil
-		basePath = root
+		basePath = ""
 	}
 
 	if err != nil {
