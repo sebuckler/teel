@@ -2,7 +2,6 @@ package scaffolder
 
 import (
 	"errors"
-	"github.com/sebuckler/teel/internal/logger"
 	"github.com/sebuckler/teel/internal/scaffolder/directives"
 	"os"
 )
@@ -13,13 +12,11 @@ type Scaffolder interface {
 
 type scaffolder struct {
 	directives []directives.Directive
-	logger     logger.Logger
 }
 
-func New(l logger.Logger, d ...directives.Directive) Scaffolder {
+func New(d ...directives.Directive) Scaffolder {
 	return &scaffolder{
 		directives: d,
-		logger:     l,
 	}
 }
 

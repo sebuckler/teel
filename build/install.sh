@@ -1,5 +1,5 @@
 #!/bin/bash
 
-./build.sh
+./build/build.sh
 
 cp teel /usr/local/bin

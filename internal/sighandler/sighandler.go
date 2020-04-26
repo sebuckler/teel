@@ -6,19 +6,25 @@ import (
 )
 
 type Handler interface {
-	Handle(h func(s os.Signal), s ...os.Signal)
+	Handle(f handleFunc)
 }
 
-type handler struct{}
-
-func New() Handler {
-	return &handler{}
+type handler struct {
+	signals []os.Signal
 }
 
-func (*handler) Handle(h func(os.Signal), s ...os.Signal) {
+type handleFunc func(os.Signal)
+
+func New(s ...os.Signal) Handler {
+	return &handler{
+		signals: s,
+	}
+}
+
+func (h *handler) Handle(f handleFunc) {
 	signalChannel := make(chan os.Signal, 1)
 
-	signal.Notify(signalChannel, s...)
+	signal.Notify(signalChannel, h.signals...)
 
-	go func() { h(<-signalChannel) }()
+	go func() { f(<-signalChannel) }()
 }

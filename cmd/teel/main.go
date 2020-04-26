@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/sebuckler/teel/internal/cli"
+	"github.com/sebuckler/teel/internal/executor"
 	"github.com/sebuckler/teel/internal/filestreamer"
 	"github.com/sebuckler/teel/internal/logger"
 	"github.com/sebuckler/teel/internal/scaffolder"
@@ -16,12 +16,19 @@ var version string
 func main() {
 	fileStreamer := filestreamer.New(filestreamer.HOME, "teel_logs", "teel.log")
 	streamErr := fileStreamer.Stream(func(f *filestreamer.StreamFile) {
-		signalHandler := sighandler.New()
+		signalHandler := sighandler.New(os.Kill, os.Interrupt)
 		fileLogger := logger.New(f, nil)
-		blogScaffolder := scaffolder.New(fileLogger, directives.NewConfig())
+		siteScaffolder := scaffolder.New(directives.NewConfig())
+		cmdExecutor := executor.New(fileLogger, siteScaffolder, version)
 
-		signalHandler.Handle(func(os.Signal) { _ = f.Flush() }, os.Kill, os.Interrupt)
-		cli.New(f.Cwd, fileLogger, blogScaffolder, version).Execute()
+		execErr := cmdExecutor.Execute()
+
+		if execErr != nil {
+			fmt.Printf("Error: %v\n", execErr)
+			os.Exit(1)
+		}
+
+		signalHandler.Handle(func(os.Signal) { _ = f.Flush() })
 	})
 
 	if streamErr != nil {
