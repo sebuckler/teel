@@ -42,18 +42,6 @@ const (
 	ContinueOnError
 )
 
-type ArgConfig struct {
-	Name       string
-	Repeatable bool
-	Type       ArgType
-}
-
-type CommandConfig struct {
-	Args        []*ArgConfig
-	Name        string
-	Subcommands []*CommandConfig
-}
-
 type commandArg struct {
 	name       string
 	shortName  rune
@@ -107,6 +95,23 @@ type commandArgs struct {
 }
 
 type CommandRunFunc func(ctx context.Context)
+
+type ArgConfig struct {
+	Name       string
+	Repeatable bool
+	ShortName  rune
+	Type       ArgType
+	UsageText  string
+	Value      interface{}
+}
+
+type CommandConfig struct {
+	Args        []*ArgConfig
+	Context     context.Context
+	Name        string
+	Run         CommandRunFunc
+	Subcommands []*CommandConfig
+}
 
 type ArgAdder interface {
 	AddBoolArg(n string, s rune, p *bool, v bool, u string, r bool)
@@ -231,7 +236,13 @@ func (c *commandConfigurer) AddUint64Arg(n string, s rune, p *uint64, v uint64, 
 }
 
 func (c *commandConfigurer) Configure() *CommandConfig {
-	panic("implement me")
+	return &CommandConfig{
+		Args:        c.configureArgs(),
+		Context:     c.ctx,
+		Name:        c.name,
+		Run:         c.run,
+		Subcommands: c.configureSubcommands(),
+	}
 }
 
 func (c *commandConfigurer) newCommandArg(n string, s rune, u string, r bool) *commandArg {
@@ -241,6 +252,112 @@ func (c *commandConfigurer) newCommandArg(n string, s rune, u string, r bool) *c
 		usageText:  u,
 		repeatable: r,
 	}
+}
+
+func (c *commandConfigurer) configureArgs() []*ArgConfig {
+	var argConfigs []*ArgConfig
+
+	argConfigs = append(argConfigs, c.configureBoolArgs()...)
+	argConfigs = append(argConfigs, c.configureIntArgs()...)
+	argConfigs = append(argConfigs, c.configureInt64Args()...)
+	argConfigs = append(argConfigs, c.configureStringArgs()...)
+	argConfigs = append(argConfigs, c.configureUintArgs()...)
+	argConfigs = append(argConfigs, c.configureUint64Args()...)
+
+	return argConfigs
+}
+
+func (c *commandConfigurer) configureBoolArgs() []*ArgConfig {
+	var boolArgConfigs []*ArgConfig
+
+	for _, arg := range c.args.boolArgs {
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Bool)
+		boolArgConfigs = append(boolArgConfigs, argConfig)
+	}
+
+	return boolArgConfigs
+}
+
+func (c *commandConfigurer) configureIntArgs() []*ArgConfig {
+	var intArgConfigs []*ArgConfig
+
+	for _, arg := range c.args.intArgs {
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Int)
+		intArgConfigs = append(intArgConfigs, argConfig)
+	}
+
+	return intArgConfigs
+}
+
+func (c *commandConfigurer) configureInt64Args() []*ArgConfig {
+	var int64ArgConfigs []*ArgConfig
+
+	for _, arg := range c.args.intArgs {
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Int64)
+		int64ArgConfigs = append(int64ArgConfigs, argConfig)
+	}
+
+	return int64ArgConfigs
+}
+
+func (c *commandConfigurer) configureStringArgs() []*ArgConfig {
+	var stringArgConfigs []*ArgConfig
+
+	for _, arg := range c.args.intArgs {
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, String)
+		stringArgConfigs = append(stringArgConfigs, argConfig)
+	}
+
+	return stringArgConfigs
+}
+
+func (c *commandConfigurer) configureUintArgs() []*ArgConfig {
+	var uintArgConfigs []*ArgConfig
+
+	for _, arg := range c.args.intArgs {
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Int)
+		uintArgConfigs = append(uintArgConfigs, argConfig)
+	}
+
+	return uintArgConfigs
+}
+
+func (c *commandConfigurer) configureUint64Args() []*ArgConfig {
+	var uint64ArgConfigs []*ArgConfig
+
+	for _, arg := range c.args.intArgs {
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Int)
+		uint64ArgConfigs = append(uint64ArgConfigs, argConfig)
+	}
+
+	return uint64ArgConfigs
+}
+
+func (c *commandConfigurer) configureCommandArgType(a *commandArg, v interface{}, d interface{}, t ArgType) *ArgConfig {
+	argValue := v
+
+	if argValue == nil {
+		argValue = &d
+	}
+
+	return &ArgConfig{
+		Name:       a.name,
+		Repeatable: a.repeatable,
+		ShortName:  a.shortName,
+		Type:       t,
+		UsageText:  a.usageText,
+		Value: argValue,
+	}
+}
+
+func (c *commandConfigurer) configureSubcommands() []*CommandConfig {
+	var subcommandConfigs []*CommandConfig
+
+	for _, subCmd := range c.subcommands {
+		subcommandConfigs = append(subcommandConfigs, subCmd.Configure())
+	}
+
+	return subcommandConfigs
 }
 
 func NewParser(a ArgSyntax, d DuplicateSubcommands) Parser {
@@ -296,8 +413,6 @@ func (p *parser) parsePosixArgs(a []string) error {
 
 			fmt.Println(args)
 		}
-
-		p.parseSubcommand(arg)
 	}
 
 	return nil
@@ -336,10 +451,6 @@ func (p *parser) parsePosixOption(a string) ([]string, error) {
 	}
 
 	return argChain, nil
-}
-
-func (p *parser) parseSubcommand(a string) error {
-	panic("implement me")
 }
 
 func NewRunner(c CommandConfigurer, p Parser, v string, e ErrorBehavior) Runner {
