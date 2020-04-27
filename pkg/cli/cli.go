@@ -382,10 +382,6 @@ func (p *parser) Parse(c *CommandConfig) error {
 	}
 }
 
-func (p *parser) mapSubcommands() {
-	panic("implement me")
-}
-
 func (p *parser) parseGnuArgs(a []string) error {
 	panic("implement me")
 }
@@ -463,10 +459,19 @@ func NewRunner(c CommandConfigurer, p Parser, v string, e ErrorBehavior) Runner 
 }
 
 func (r *runner) Run() error {
-	parseErr := r.parser.Parse(r.cmd.Configure())
+	cmdConfig := r.cmd.Configure()
+	parseErr := r.parser.Parse(cmdConfig)
 
 	if parseErr != nil {
 		return parseErr
+	}
+
+	if cmdConfig.Run != nil {
+		cmdConfig.Run(cmdConfig.Context)
+	}
+
+	for _, subCmd := range cmdConfig.Subcommands {
+		subCmd.Run(subCmd.Context)
 	}
 
 	return nil
