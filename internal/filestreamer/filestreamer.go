@@ -23,12 +23,12 @@ type streamer struct {
 
 type streamFunc func(f *StreamFile)
 
-type BasePath string
+type BasePath int
 
 const (
-	ROOT BasePath = ""
-	HOME BasePath = "HOME"
-	CWD  BasePath = "CWD"
+	Cwd BasePath = iota
+	HomeDir
+	RootDir
 )
 
 func New(b BasePath, p ...string) Streamer {
@@ -44,12 +44,12 @@ func (f *streamer) Stream(s streamFunc) error {
 	cwd, err = os.Getwd()
 
 	switch f.base {
-	case CWD:
+	case Cwd:
 		basePath = cwd
-	case HOME:
+	case HomeDir:
 		home, err = os.UserHomeDir()
 		basePath = home
-	case ROOT:
+	case RootDir:
 		basePath = ""
 	}
 

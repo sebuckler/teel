@@ -3,7 +3,6 @@ package cli
 import (
 	"context"
 	"errors"
-	"fmt"
 	"os"
 	"strings"
 )
@@ -113,6 +112,23 @@ type CommandConfig struct {
 	Subcommands []*CommandConfig
 }
 
+type parsedArg struct {
+	name  string
+	value string
+}
+
+type parsedCommand struct {
+	args        []string
+	argConfigs  []*ArgConfig
+	context     context.Context
+	name        string
+	operands    []string
+	parentCmd   string
+	parsedArgs  []*parsedArg
+	run         CommandRunFunc
+	subcommands []*parsedCommand
+}
+
 type ArgAdder interface {
 	AddBoolArg(n string, s rune, p *bool, v bool, u string, r bool)
 	AddIntArg(n string, s rune, p *int, v int, u string, r bool)
@@ -143,9 +159,9 @@ type Parser interface {
 }
 
 type parser struct {
-	argSyntax ArgSyntax
-	dupSubcmd DuplicateSubcommands
-	registry  context.Context
+	argSyntax      ArgSyntax
+	dupSubcmd      DuplicateSubcommands
+	parsedCommands []*parsedCommand
 }
 
 type Runner interface {
@@ -315,7 +331,7 @@ func (c *commandConfigurer) configureUintArgs() []*ArgConfig {
 	var uintArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.intArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Int)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Uint)
 		uintArgConfigs = append(uintArgConfigs, argConfig)
 	}
 
@@ -326,7 +342,7 @@ func (c *commandConfigurer) configureUint64Args() []*ArgConfig {
 	var uint64ArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.intArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Int)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Uint64)
 		uint64ArgConfigs = append(uint64ArgConfigs, argConfig)
 	}
 
@@ -346,7 +362,7 @@ func (c *commandConfigurer) configureCommandArgType(a *commandArg, v interface{}
 		ShortName:  a.shortName,
 		Type:       t,
 		UsageText:  a.usageText,
-		Value: argValue,
+		Value:      argValue,
 	}
 }
 
@@ -362,21 +378,89 @@ func (c *commandConfigurer) configureSubcommands() []*CommandConfig {
 
 func NewParser(a ArgSyntax, d DuplicateSubcommands) Parser {
 	return &parser{
-		argSyntax: a,
-		dupSubcmd: d,
+		argSyntax:      a,
+		dupSubcmd:      d,
+		parsedCommands: []*parsedCommand{},
 	}
 }
 
 func (p *parser) Parse(c *CommandConfig) error {
 	args := os.Args[1:]
+	rootCmd := p.parseRootCmd(c)
+	p.parsedCommands = append(p.parsedCommands, rootCmd)
+	p.mapSubcommands(args, c, rootCmd)
 
+	for _, cmd := range p.parsedCommands {
+		if argErr := p.parseArgs(cmd); argErr != nil {
+			return argErr
+		}
+	}
+
+	return nil
+}
+
+func (p *parser) mapSubcommands(a []string, c *CommandConfig, l *parsedCommand) {
+	if len(a) == 0 || l == nil {
+		return
+	}
+
+	arg := a[0]
+	argMapped := false
+	var lastParsedCmd *parsedCommand
+
+	for _, cmd := range c.Subcommands {
+		if arg == cmd.Name {
+			parsedCmd := &parsedCommand{
+				argConfigs: cmd.Args,
+				context:    cmd.Context,
+				name:       cmd.Name,
+				parentCmd:  c.Name,
+				run:        cmd.Run,
+			}
+			p.parsedCommands = append(p.parsedCommands, parsedCmd)
+			lastParsedCmd = parsedCmd
+			argMapped = true
+
+			break
+		}
+
+		if l.name == cmd.Name && len(cmd.Subcommands) > 0 {
+			p.mapSubcommands(a, cmd, l)
+		}
+	}
+
+	if lastParsedCmd == nil {
+		lastParsedCmd = l
+	}
+
+	if !argMapped {
+		lastParsedCmd.args = append(lastParsedCmd.args, arg)
+	}
+
+	if len(a) == 1 {
+		return
+	}
+
+	p.mapSubcommands(a[1:], c, lastParsedCmd)
+}
+
+func (p *parser) parseRootCmd(c *CommandConfig) *parsedCommand {
+	return &parsedCommand{
+		args:       []string{},
+		argConfigs: c.Args,
+		context:    c.Context,
+		run:        c.Run,
+	}
+}
+
+func (p *parser) parseArgs(c *parsedCommand) error {
 	switch p.argSyntax {
 	case Gnu:
-		return p.parseGnuArgs(args)
+		return p.parseGnuArgs(c.args)
 	case GoFlag:
-		return p.parseGoFlagArgs(args)
+		return p.parseGoFlagArgs(c.args)
 	case Posix:
-		return p.parsePosixArgs(args)
+		return p.parsePosixArgs(c)
 	default:
 		return errors.New("unsupported ArgSyntax")
 	}
@@ -390,63 +474,72 @@ func (p *parser) parseGoFlagArgs(a []string) error {
 	panic("implement me")
 }
 
-func (p *parser) parsePosixArgs(a []string) error {
-	if len(a) == 0 {
+func (p *parser) parsePosixArgs(c *parsedCommand) error {
+	if len(c.args) == 0 {
 		return nil
 	}
-	fmt.Println(a)
-	for _, arg := range a {
-		if strings.HasPrefix(arg, "-") {
-			args, argErr := p.parsePosixOption(arg)
 
-			if argErr != nil {
-				return argErr
-			}
+	var lastParsedArg string
+	var operands []string
+	var parsedArgs []*parsedArg
+	terminated := false
 
-			if len(args) == 0 {
-				return nil
-			}
-
-			fmt.Println(args)
+	for argIndex, arg := range c.args {
+		if argIndex == 0 && !strings.HasPrefix(arg, "-") {
+			return errors.New("invalid POSIX option: " + arg)
 		}
+
+		if strings.HasPrefix(arg, "-") && len(arg) > 0 {
+			option := strings.TrimPrefix(arg, "-")
+
+			for charIndex, char := range option {
+				optName := string(char)
+
+				if charIndex+1 < len(option) && char == '-' {
+					return errors.New("invalid POSIX option: " + optName)
+				}
+
+				if char == '-' {
+					terminated = true
+
+					break
+				}
+
+				parsedArgs = append(parsedArgs, &parsedArg{
+					name:  optName,
+					value: "",
+				})
+				lastParsedArg = optName
+			}
+
+			continue
+		}
+
+		if terminated {
+			operands = append(operands, arg)
+
+			continue
+		}
+
+		if lastParsedArg != "" {
+			for _, pArg := range parsedArgs {
+				if pArg.name == lastParsedArg {
+					pArg.value = arg
+
+					break
+				}
+			}
+
+			continue
+		}
+
+		return errors.New("invalid POSIX option: " + arg)
 	}
+
+	c.parsedArgs = parsedArgs
+	c.operands = operands
 
 	return nil
-}
-
-func (p *parser) parsePosixOption(a string) ([]string, error) {
-	if strings.HasPrefix(a, "--") && len(a) > 2 {
-		return nil, errors.New("invalid POSIX argument syntax")
-	}
-
-	if strings.HasPrefix(a, "--") && len(a) == 2 {
-		return nil, nil
-	}
-
-	posixArg := strings.TrimPrefix(a, "-")
-
-	if posixArg == "W" {
-		return nil, errors.New("-W is a reserved vendor argument")
-	}
-
-	if len(posixArg) == 1 {
-		return []string{posixArg}, nil
-	}
-
-	var argChain []string
-	argValueSplit := strings.Split(posixArg, "=")
-
-	for _, arg := range argValueSplit[0] {
-		argChar := string(arg)
-
-		if argChar == "-" {
-			return nil, errors.New("invalid POSIX argument syntax")
-		}
-
-		argChain = append(argChain, argChar)
-	}
-
-	return argChain, nil
 }
 
 func NewRunner(c CommandConfigurer, p Parser, v string, e ErrorBehavior) Runner {
