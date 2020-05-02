@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -27,11 +28,17 @@ type ArgType int
 
 const (
 	Bool ArgType = iota
+	BoolList
 	Int
+	IntList
 	Int64
+	Int64List
 	String
+	StringList
 	Uint
+	UintList
 	Uint64
+	Uint64List
 )
 
 type ErrorBehavior int
@@ -113,8 +120,10 @@ type CommandConfig struct {
 }
 
 type parsedArg struct {
-	name  string
-	value string
+	argType ArgType
+	bindVal interface{}
+	name    string
+	value   []string
 }
 
 type parsedCommand struct {
@@ -308,7 +317,7 @@ func (c *commandConfigurer) configureIntArgs() []*ArgConfig {
 func (c *commandConfigurer) configureInt64Args() []*ArgConfig {
 	var int64ArgConfigs []*ArgConfig
 
-	for _, arg := range c.args.intArgs {
+	for _, arg := range c.args.int64Args {
 		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Int64)
 		int64ArgConfigs = append(int64ArgConfigs, argConfig)
 	}
@@ -319,7 +328,7 @@ func (c *commandConfigurer) configureInt64Args() []*ArgConfig {
 func (c *commandConfigurer) configureStringArgs() []*ArgConfig {
 	var stringArgConfigs []*ArgConfig
 
-	for _, arg := range c.args.intArgs {
+	for _, arg := range c.args.stringArgs {
 		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, String)
 		stringArgConfigs = append(stringArgConfigs, argConfig)
 	}
@@ -330,7 +339,7 @@ func (c *commandConfigurer) configureStringArgs() []*ArgConfig {
 func (c *commandConfigurer) configureUintArgs() []*ArgConfig {
 	var uintArgConfigs []*ArgConfig
 
-	for _, arg := range c.args.intArgs {
+	for _, arg := range c.args.uintArgs {
 		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Uint)
 		uintArgConfigs = append(uintArgConfigs, argConfig)
 	}
@@ -341,7 +350,7 @@ func (c *commandConfigurer) configureUintArgs() []*ArgConfig {
 func (c *commandConfigurer) configureUint64Args() []*ArgConfig {
 	var uint64ArgConfigs []*ArgConfig
 
-	for _, arg := range c.args.intArgs {
+	for _, arg := range c.args.uint64Args {
 		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue, Uint64)
 		uint64ArgConfigs = append(uint64ArgConfigs, argConfig)
 	}
@@ -350,10 +359,17 @@ func (c *commandConfigurer) configureUint64Args() []*ArgConfig {
 }
 
 func (c *commandConfigurer) configureCommandArgType(a *commandArg, v interface{}, d interface{}, t ArgType) *ArgConfig {
-	argValue := v
-
-	if argValue == nil {
-		argValue = &d
+	if v != nil {
+		switch v.(type) {
+		case *bool:
+			val := v.(*bool)
+			*val = d.(bool)
+			v = val
+		case *string:
+			val := v.(*string)
+			*val = d.(string)
+			v = val
+		}
 	}
 
 	return &ArgConfig{
@@ -362,7 +378,7 @@ func (c *commandConfigurer) configureCommandArgType(a *commandArg, v interface{}
 		ShortName:  a.shortName,
 		Type:       t,
 		UsageText:  a.usageText,
-		Value:      argValue,
+		Value:      v,
 	}
 }
 
@@ -479,37 +495,63 @@ func (p *parser) parsePosixArgs(c *parsedCommand) error {
 		return nil
 	}
 
-	var lastParsedArg string
+	lastParsedArg := map[string][]string{}
 	var operands []string
 	var parsedArgs []*parsedArg
 	terminated := false
+	terminatorIndex := getPosixTerminatorIndex(c.args)
 
 	for argIndex, arg := range c.args {
 		if argIndex == 0 && !strings.HasPrefix(arg, "-") {
 			return errors.New("invalid POSIX option: " + arg)
 		}
 
-		if strings.HasPrefix(arg, "-") && len(arg) > 0 {
+		if arg == "--" && argIndex == terminatorIndex {
+			terminated = true
+
+			continue
+		}
+
+		if strings.HasPrefix(arg, "-") && len(arg) > 0 && arg != "--" {
 			option := strings.TrimPrefix(arg, "-")
 
-			for charIndex, char := range option {
+			for _, char := range option {
 				optName := string(char)
 
-				if charIndex+1 < len(option) && char == '-' {
-					return errors.New("invalid POSIX option: " + optName)
+				if char == '-' && terminated {
+					return errors.New("invalid POSIX option: -" + option)
 				}
 
-				if char == '-' {
-					terminated = true
+				for _, argConfig := range c.argConfigs {
+					if !isValidPosixOptionName(argConfig.Name, argConfig.ShortName) {
+						return errors.New("invalid POSIX option defined: -" + option)
+					}
 
-					break
+					if optName == argConfig.Name || char == argConfig.ShortName {
+						for _, pArg := range parsedArgs {
+							if option == pArg.name && !argConfig.Repeatable {
+								return errors.New("invalid POSIX option: -" + option)
+							}
+						}
+
+						parsedArgs = append(parsedArgs, &parsedArg{
+							argType: argConfig.Type,
+							bindVal: argConfig.Value,
+							name:    optName,
+							value:   []string{},
+						})
+
+						if argConfig.Type == Bool {
+							lastParsedArg = map[string][]string{optName: {""}}
+
+							break
+						}
+
+						lastParsedArg = map[string][]string{optName: {}}
+
+						break
+					}
 				}
-
-				parsedArgs = append(parsedArgs, &parsedArg{
-					name:  optName,
-					value: "",
-				})
-				lastParsedArg = optName
 			}
 
 			continue
@@ -521,10 +563,11 @@ func (p *parser) parsePosixArgs(c *parsedCommand) error {
 			continue
 		}
 
-		if lastParsedArg != "" {
+		if len(lastParsedArg) > 0 {
 			for _, pArg := range parsedArgs {
-				if pArg.name == lastParsedArg {
-					pArg.value = arg
+				if _, ok := lastParsedArg[pArg.name]; ok {
+					pArg.value = append(pArg.value, arg)
+					lastParsedArg[pArg.name] = append(lastParsedArg[pArg.name], arg)
 
 					break
 				}
@@ -533,11 +576,176 @@ func (p *parser) parsePosixArgs(c *parsedCommand) error {
 			continue
 		}
 
-		return errors.New("invalid POSIX option: " + arg)
+		return errors.New("invalid POSIX option: -" + arg)
 	}
 
 	c.parsedArgs = parsedArgs
 	c.operands = operands
+
+	return p.bindArgs(c)
+}
+
+func (p *parser) bindArgs(c *parsedCommand) error {
+	if len(c.parsedArgs) == 0 {
+		return nil
+	}
+
+	for _, arg := range c.parsedArgs {
+		switch arg.argType {
+		case Bool:
+			if len(arg.value) > 0 && arg.value[0] != "" {
+				return errors.New(
+					"invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
+						"' for option: -" + arg.name,
+				)
+			}
+
+			bindVal := arg.bindVal.(*bool)
+			*bindVal = true
+		case Int:
+			if len(arg.value) != 1 || arg.value == nil {
+				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
+					"' for option: -" + arg.name,
+				)
+			}
+
+			argVal := arg.value[0]
+			intVal, intErr := strconv.Atoi(argVal)
+
+			if intErr != nil || argVal == "" {
+				return errors.New("invalid POSIX option-argument: '" + argVal + "' for option: -" + arg.name)
+			}
+
+			bindVal := arg.bindVal.(*int)
+			*bindVal = intVal
+		case IntList:
+			var intVals []int
+
+			for _, argVal := range arg.value {
+				intVal, intErr := strconv.Atoi(argVal)
+
+				if intErr != nil || argVal == "" {
+					return errors.New("invalid POSIX option-argument: '" + argVal + "' for option: -" + arg.name)
+				}
+
+				intVals = append(intVals, intVal)
+			}
+
+			bindVal := arg.bindVal.(*[]int)
+			*bindVal = intVals
+		case Int64:
+			if len(arg.value) != 1 || arg.value == nil {
+				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
+					"' for option: -" + arg.name,
+				)
+			}
+
+			argVal := arg.value[0]
+			int64Val, int64Err := strconv.ParseInt(argVal, 10, 64)
+
+			if int64Err != nil || argVal == "" {
+				return errors.New("invalid POSIX option-argument: '" + argVal + "' for option: -" + arg.name)
+			}
+
+			bindVal := arg.bindVal.(*int64)
+			*bindVal = int64Val
+		case Int64List:
+			var int64Vals []int64
+
+			for _, argVal := range arg.value {
+				int64Val, int64Err := strconv.ParseInt(argVal, 10, 64)
+
+				if int64Err != nil || argVal == "" {
+					return errors.New("invalid POSIX option-argument: '" + argVal + "' for option: -" + arg.name)
+				}
+
+				int64Vals = append(int64Vals, int64Val)
+			}
+
+			bindVal := arg.bindVal.(*[]int64)
+			*bindVal = int64Vals
+		case String:
+			if len(arg.value) != 1 || arg.value[0] == "" {
+				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
+					"' for option: -" + arg.name,
+				)
+			}
+
+			bindVal := arg.bindVal.(*string)
+			*bindVal = arg.value[0]
+		case StringList:
+			if len(arg.value) == 0 {
+				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
+					"' for option: -" + arg.name,
+				)
+			}
+
+			bindVal := arg.bindVal.(*[]string)
+			*bindVal = arg.value
+		case Uint:
+			if len(arg.value) != 1 || arg.value == nil {
+				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
+					"' for option: -" + arg.name,
+				)
+			}
+
+			argVal := arg.value[0]
+			uintVal, uintErr := strconv.ParseUint(argVal, 10, 0)
+
+			if uintErr != nil || argVal == "" {
+				return errors.New("invalid POSIX option-argument: '" + argVal + "' for option: -" + arg.name)
+			}
+
+			bindVal := arg.bindVal.(*uint)
+			*bindVal = uint(uintVal)
+		case UintList:
+			var uintVals []uint
+
+			for _, argVal := range arg.value {
+				uintVal, uintErr := strconv.ParseUint(argVal, 10, 32)
+
+				if uintErr != nil || argVal == "" {
+					return errors.New("invalid POSIX option-argument: '" + argVal + "' for option: -" + arg.name)
+				}
+
+				uintVals = append(uintVals, uint(uintVal))
+			}
+
+			bindVal := arg.bindVal.(*[]uint)
+			*bindVal = uintVals
+		case Uint64:
+			if len(arg.value) != 1 || arg.value == nil {
+				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
+					"' for option: -" + arg.name,
+				)
+			}
+
+			argVal := arg.value[0]
+			uint64Val, uint64Err := strconv.ParseUint(argVal, 10, 64)
+
+			if uint64Err != nil || argVal == "" {
+				return errors.New("invalid POSIX option-argument: '" + argVal + "' for option: -" + arg.name)
+			}
+
+			bindVal := arg.bindVal.(*uint64)
+			*bindVal = uint64Val
+		case Uint64List:
+			var uint64Vals []uint64
+
+			for _, argVal := range arg.value {
+				uint64Val, uint64Err := strconv.ParseUint(argVal, 10, 64)
+
+				if uint64Err != nil || argVal == "" {
+					return errors.New("invalid POSIX option-argument: '" + argVal + "' for option: -" + arg.name)
+				}
+
+				uint64Vals = append(uint64Vals, uint64Val)
+			}
+
+			bindVal := arg.bindVal.(*[]uint64)
+			*bindVal = uint64Vals
+		}
+	}
 
 	return nil
 }
@@ -568,4 +776,29 @@ func (r *runner) Run() error {
 	}
 
 	return nil
+}
+
+func getPosixTerminatorIndex(a []string) int {
+	var terminators []int
+
+	for i, arg := range a {
+		if arg == "--" {
+			terminators = append(terminators, i)
+		}
+	}
+
+	if len(terminators) > 0 {
+		return terminators[len(terminators)-1]
+	}
+
+	return -1
+}
+
+func isValidPosixOptionName(s string, r rune) bool {
+	if (s == "" || len(s) > 1) || ((s[0] < 'a' || s[0] > 'z') && (s[0] < 'A' || s[0] > 'Z')) ||
+		((r < 'a' || r > 'z') && (r < 'A' || r > 'Z')) || (s[0] == 'W' || r == 'W') {
+		return false
+	}
+
+	return true
 }

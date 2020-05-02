@@ -25,8 +25,16 @@ func New(l logger.Logger, s scaffolder.Scaffolder) CommandBuilder {
 }
 
 func (c *commandBuilder) Build() cli.CommandConfigurer {
+	var a bool
+	var b string
 	rootCmd := cli.NewCommand("", context.Background())
+	rootCmd.AddBoolArg("a", 'a', &a, false, "Is first letter of alphabet", false)
+	rootCmd.AddStringArg("b", 'b', &b, "second", "Second letter of alphabet", false)
 	rootCmd.AddRunFunc(func(ctx context.Context) {
+		fmt.Print("a: ")
+		fmt.Print(a)
+		fmt.Print(", b: ")
+		fmt.Print(b + "\n")
 		fmt.Println("welcome to the thunderdome")
 	})
 	subCmd := cli.NewCommand("subby", context.Background())
