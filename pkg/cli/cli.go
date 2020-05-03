@@ -603,10 +603,8 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 			bindVal := arg.bindVal.(*bool)
 			*bindVal = true
 		case Int:
-			if len(arg.value) != 1 || arg.value == nil {
-				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
-					"' for option: -" + arg.name,
-				)
+			if err := isValidPosixNonlistArg(arg); err != nil {
+				return err
 			}
 
 			argVal := arg.value[0]
@@ -634,10 +632,8 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 			bindVal := arg.bindVal.(*[]int)
 			*bindVal = intVals
 		case Int64:
-			if len(arg.value) != 1 || arg.value == nil {
-				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
-					"' for option: -" + arg.name,
-				)
+			if err := isValidPosixNonlistArg(arg); err != nil {
+				return err
 			}
 
 			argVal := arg.value[0]
@@ -665,10 +661,8 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 			bindVal := arg.bindVal.(*[]int64)
 			*bindVal = int64Vals
 		case String:
-			if len(arg.value) != 1 || arg.value[0] == "" {
-				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
-					"' for option: -" + arg.name,
-				)
+			if err := isValidPosixNonlistArg(arg); err != nil {
+				return err
 			}
 
 			bindVal := arg.bindVal.(*string)
@@ -683,10 +677,8 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 			bindVal := arg.bindVal.(*[]string)
 			*bindVal = arg.value
 		case Uint:
-			if len(arg.value) != 1 || arg.value == nil {
-				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
-					"' for option: -" + arg.name,
-				)
+			if err := isValidPosixNonlistArg(arg); err != nil {
+				return err
 			}
 
 			argVal := arg.value[0]
@@ -714,10 +706,8 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 			bindVal := arg.bindVal.(*[]uint)
 			*bindVal = uintVals
 		case Uint64:
-			if len(arg.value) != 1 || arg.value == nil {
-				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
-					"' for option: -" + arg.name,
-				)
+			if err := isValidPosixNonlistArg(arg); err != nil {
+				return err
 			}
 
 			argVal := arg.value[0]
@@ -745,6 +735,16 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 			bindVal := arg.bindVal.(*[]uint64)
 			*bindVal = uint64Vals
 		}
+	}
+
+	return nil
+}
+
+func isValidPosixNonlistArg(arg *parsedArg) error {
+	if len(arg.value) != 1 || arg.value[0] == "" {
+		return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
+			"' for option: -" + arg.name,
+		)
 	}
 
 	return nil
@@ -779,19 +779,15 @@ func (r *runner) Run() error {
 }
 
 func getPosixTerminatorIndex(a []string) int {
-	var terminators []int
+	lastIndex := -1
 
 	for i, arg := range a {
 		if arg == "--" {
-			terminators = append(terminators, i)
+			lastIndex = i
 		}
 	}
 
-	if len(terminators) > 0 {
-		return terminators[len(terminators)-1]
-	}
-
-	return -1
+	return lastIndex
 }
 
 func isValidPosixOptionName(s string, r rune) bool {
