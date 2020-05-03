@@ -20,23 +20,6 @@ const (
 	DepthFirst
 )
 
-type ArgType int
-
-const (
-	Bool ArgType = iota
-	BoolList
-	Int
-	IntList
-	Int64
-	Int64List
-	String
-	StringList
-	Uint
-	UintList
-	Uint64
-	Uint64List
-)
-
 type ErrorBehavior int
 
 const (
@@ -57,10 +40,22 @@ type boolArg struct {
 	value        *bool
 }
 
+type boolListArg struct {
+	*commandArg
+	defaultValue []bool
+	value        *[]bool
+}
+
 type intArg struct {
 	*commandArg
 	defaultValue int
 	value        *int
+}
+
+type intListArg struct {
+	*commandArg
+	defaultValue []int
+	value        *[]int
 }
 
 type int64Arg struct {
@@ -69,10 +64,22 @@ type int64Arg struct {
 	value        *int64
 }
 
+type int64ListArg struct {
+	*commandArg
+	defaultValue []int64
+	value        *[]int64
+}
+
 type stringArg struct {
 	*commandArg
 	defaultValue string
 	value        *string
+}
+
+type stringListArg struct {
+	*commandArg
+	defaultValue []string
+	value        *[]string
 }
 
 type uintArg struct {
@@ -81,19 +88,37 @@ type uintArg struct {
 	value        *uint
 }
 
+type uintListArg struct {
+	*commandArg
+	defaultValue []uint
+	value        *[]uint
+}
+
 type uint64Arg struct {
 	*commandArg
 	defaultValue uint64
 	value        *uint64
 }
 
+type uint64ListArg struct {
+	*commandArg
+	defaultValue []uint64
+	value        *[]uint64
+}
+
 type commandArgs struct {
-	boolArgs   []*boolArg
-	intArgs    []*intArg
-	int64Args  []*int64Arg
-	stringArgs []*stringArg
-	uintArgs   []*uintArg
-	uint64Args []*uint64Arg
+	boolArgs       []*boolArg
+	boolListArgs   []*boolListArg
+	intArgs        []*intArg
+	intListArgs    []*intListArg
+	int64Args      []*int64Arg
+	int64ListArgs  []*int64ListArg
+	stringArgs     []*stringArg
+	stringListArgs []*stringListArg
+	uintArgs       []*uintArg
+	uintListArgs   []*uintListArg
+	uint64Args     []*uint64Arg
+	uint64ListArgs []*uint64ListArg
 }
 
 type CommandRunFunc func(ctx context.Context)
@@ -102,7 +127,6 @@ type ArgConfig struct {
 	Name       string
 	Repeatable bool
 	ShortName  rune
-	Type       ArgType
 	UsageText  string
 	Value      interface{}
 }
@@ -116,7 +140,6 @@ type CommandConfig struct {
 }
 
 type parsedArg struct {
-	argType ArgType
 	bindVal interface{}
 	name    string
 	value   []string
@@ -136,11 +159,17 @@ type parsedCommand struct {
 
 type ArgAdder interface {
 	AddBoolArg(n string, s rune, p *bool, v bool, u string, r bool)
+	AddBoolListArg(n string, s rune, p *[]bool, v []bool, u string, r bool)
 	AddIntArg(n string, s rune, p *int, v int, u string, r bool)
+	AddIntListArg(n string, s rune, p *[]int, v []int, u string, r bool)
 	AddInt64Arg(n string, s rune, p *int64, v int64, u string, r bool)
+	AddInt64ListArg(n string, s rune, p *[]int64, v []int64, u string, r bool)
 	AddStringArg(n string, s rune, p *string, v string, u string, r bool)
+	AddStringListArg(n string, s rune, p *[]string, v []string, u string, r bool)
 	AddUintArg(n string, s rune, p *uint, v uint, u string, r bool)
+	AddUintListArg(n string, s rune, p *[]uint, v []uint, u string, r bool)
 	AddUint64Arg(n string, s rune, p *uint64, v uint64, u string, r bool)
+	AddUint64ListArg(n string, s rune, p *[]uint64, v []uint64, u string, r bool)
 }
 
 type CommandConfigurer interface {

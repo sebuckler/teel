@@ -149,13 +149,12 @@ func (p *parser) parsePosixArgs(c *parsedCommand) error {
 					}
 
 					parsedArgs = append(parsedArgs, &parsedArg{
-						argType: argConfig.Type,
 						bindVal: argConfig.Value,
 						name:    optName,
 						value:   []string{},
 					})
 
-					if argConfig.Type == Bool {
+					if _, ok := argConfig.Value.(*bool); ok {
 						lastParsedArg = map[string][]string{optName: {""}}
 
 						break
@@ -204,8 +203,8 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 	}
 
 	for _, arg := range c.parsedArgs {
-		switch arg.argType {
-		case Bool:
+		switch arg.bindVal.(type) {
+		case *bool:
 			if len(arg.value) > 0 && arg.value[0] != "" {
 				return errors.New(
 					"invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
@@ -215,7 +214,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 
 			bindVal := arg.bindVal.(*bool)
 			*bindVal = true
-		case Int:
+		case *int:
 			if err := isValidPosixNonlistArg(arg); err != nil {
 				return err
 			}
@@ -229,7 +228,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 
 			bindVal := arg.bindVal.(*int)
 			*bindVal = intVal
-		case IntList:
+		case *[]int:
 			var intVals []int
 
 			for _, argVal := range arg.value {
@@ -244,7 +243,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 
 			bindVal := arg.bindVal.(*[]int)
 			*bindVal = intVals
-		case Int64:
+		case *int64:
 			if err := isValidPosixNonlistArg(arg); err != nil {
 				return err
 			}
@@ -258,7 +257,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 
 			bindVal := arg.bindVal.(*int64)
 			*bindVal = int64Val
-		case Int64List:
+		case *[]int64:
 			var int64Vals []int64
 
 			for _, argVal := range arg.value {
@@ -273,14 +272,14 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 
 			bindVal := arg.bindVal.(*[]int64)
 			*bindVal = int64Vals
-		case String:
+		case *string:
 			if err := isValidPosixNonlistArg(arg); err != nil {
 				return err
 			}
 
 			bindVal := arg.bindVal.(*string)
 			*bindVal = arg.value[0]
-		case StringList:
+		case *[]string:
 			if len(arg.value) == 0 {
 				return errors.New("invalid POSIX option-argument: '" + strings.Join(arg.value, ",") +
 					"' for option: -" + arg.name,
@@ -289,7 +288,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 
 			bindVal := arg.bindVal.(*[]string)
 			*bindVal = arg.value
-		case Uint:
+		case *uint:
 			if err := isValidPosixNonlistArg(arg); err != nil {
 				return err
 			}
@@ -303,7 +302,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 
 			bindVal := arg.bindVal.(*uint)
 			*bindVal = uint(uintVal)
-		case UintList:
+		case *[]uint:
 			var uintVals []uint
 
 			for _, argVal := range arg.value {
@@ -318,7 +317,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 
 			bindVal := arg.bindVal.(*[]uint)
 			*bindVal = uintVals
-		case Uint64:
+		case *uint64:
 			if err := isValidPosixNonlistArg(arg); err != nil {
 				return err
 			}
@@ -332,7 +331,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 
 			bindVal := arg.bindVal.(*uint64)
 			*bindVal = uint64Val
-		case Uint64List:
+		case *[]uint64:
 			var uint64Vals []uint64
 
 			for _, argVal := range arg.value {
