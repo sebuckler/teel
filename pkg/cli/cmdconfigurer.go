@@ -20,10 +20,6 @@ func NewCommand(n string, c context.Context) CommandConfigurer {
 	}
 }
 
-func (c *commandConfigurer) AddOperand() {
-	panic("implement me")
-}
-
 func (c *commandConfigurer) AddRunFunc(r CommandRunFunc) {
 	c.run = r
 }

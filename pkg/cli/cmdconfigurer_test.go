@@ -29,6 +29,8 @@ func getConfigurerTestCases() map[string]func(t *testing.T, n string) {
 		"should have command with only uint list arg":   shouldHaveCommandWithOnlyUintListArg,
 		"should have command with only uint64 arg":      shouldHaveCommandWithOnlyUint64Arg,
 		"should have command with only uint64 list arg": shouldHaveCommandWithOnlyUint64ListArg,
+		"should have command with run function":         shouldHaveCommandWithRunFunction,
+		"should have subcommands":                       shouldHaveSubcommands,
 	}
 }
 
@@ -183,5 +185,44 @@ func shouldHaveCommandWithOnlyUint64ListArg(t *testing.T, n string) {
 	if len(config.Args) != 1 || config.Args[0].Name != "bar" || !ok {
 		t.Fail()
 		t.Log(n + ": args incorrectly configured")
+	}
+}
+
+func shouldHaveCommandWithRunFunction(t *testing.T, n string) {
+	cmd := cli.NewCommand("foo", context.Background())
+	cmd.AddRunFunc(func(ctx context.Context, o []string) {
+		t.Fail()
+		t.Log(n + ": should not have run command")
+	})
+	config := cmd.Configure()
+
+	if config.Run == nil {
+		t.Fail()
+		t.Log(n + ": run function incorrectly configured")
+	}
+}
+
+func shouldHaveSubcommands(t *testing.T, n string) {
+	ctx := context.Background()
+	cmd := cli.NewCommand("foo", ctx)
+	cmd.AddSubcommand(cli.NewCommand("bar", ctx))
+	cmd.AddSubcommand(cli.NewCommand("bar2", ctx))
+	cmd.AddSubcommand(cli.NewCommand("bar3", ctx))
+	config := cmd.Configure()
+
+	if len(config.Subcommands) != 3 {
+		t.Fail()
+		t.Log(n + ": subcommands incorrectly configured")
+	}
+
+	for _, subCmd := range config.Subcommands {
+		switch subCmd.Name {
+		case "bar":
+		case "bar2":
+		case "bar3":
+		default:
+			t.Fail()
+			t.Log(n + ": subcommand names incorrectly configured")
+		}
 	}
 }

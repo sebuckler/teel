@@ -17,11 +17,11 @@ func (r *runner) Run() error {
 	}
 
 	if cmdConfig.Run != nil {
-		cmdConfig.Run(cmdConfig.Context)
+		cmdConfig.Run(cmdConfig.Context, cmdConfig.Operands)
 	}
 
 	for _, subCmd := range cmdConfig.Subcommands {
-		subCmd.Run(subCmd.Context)
+		subCmd.Run(subCmd.Context, subCmd.Operands)
 	}
 
 	return nil

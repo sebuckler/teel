@@ -30,7 +30,7 @@ func (c *commandBuilder) Build() cli.CommandConfigurer {
 	rootCmd := cli.NewCommand("", context.Background())
 	rootCmd.AddBoolArg("a", 'a', &a, false, "Is first letter of alphabet", false)
 	rootCmd.AddStringArg("b", 'b', &b, "second", "Second letter of alphabet", false)
-	rootCmd.AddRunFunc(func(ctx context.Context) {
+	rootCmd.AddRunFunc(func(ctx context.Context, o []string) {
 		fmt.Print("a: ")
 		fmt.Print(a)
 		fmt.Print(", b: ")
@@ -38,7 +38,7 @@ func (c *commandBuilder) Build() cli.CommandConfigurer {
 		fmt.Println("welcome to the thunderdome")
 	})
 	subCmd := cli.NewCommand("subby", context.Background())
-	subCmd.AddRunFunc(func(ctx context.Context) {
+	subCmd.AddRunFunc(func(ctx context.Context, o []string) {
 		fmt.Println("and me!")
 	})
 	rootCmd.AddSubcommand(subCmd)

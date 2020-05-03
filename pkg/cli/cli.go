@@ -121,7 +121,7 @@ type commandArgs struct {
 	uint64ListArgs []*uint64ListArg
 }
 
-type CommandRunFunc func(ctx context.Context)
+type CommandRunFunc func(ctx context.Context, o []string)
 
 type ArgConfig struct {
 	Name       string
@@ -135,6 +135,7 @@ type CommandConfig struct {
 	Args        []*ArgConfig
 	Context     context.Context
 	Name        string
+	Operands    []string
 	Run         CommandRunFunc
 	Subcommands []*CommandConfig
 }
@@ -173,7 +174,6 @@ type ArgAdder interface {
 }
 
 type CommandConfigurer interface {
-	AddOperand()
 	AddSubcommand(c CommandConfigurer)
 	AddRunFunc(r CommandRunFunc)
 	ArgAdder
