@@ -13,13 +13,13 @@ type CommandBuilder interface {
 }
 
 type commandBuilder struct {
-	logger logger.Logger
+	logger     logger.Logger
 	scaffolder scaffolder.Scaffolder
 }
 
 func New(l logger.Logger, s scaffolder.Scaffolder) CommandBuilder {
 	return &commandBuilder{
-		logger: l,
+		logger:     l,
 		scaffolder: s,
 	}
 }

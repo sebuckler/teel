@@ -1,6 +1,8 @@
 package cli
 
-import "context"
+import (
+	"context"
+)
 
 func NewCommand(n string, c context.Context) CommandConfigurer {
 	return &commandConfigurer{
@@ -38,11 +40,11 @@ func (c *commandConfigurer) AddBoolArg(n string, s rune, p *bool, v bool, u stri
 	})
 }
 
-func (c *commandConfigurer) AddBoolListArg(n string, s rune, p*[]bool, v []bool, u string, r bool) {
-	c.args.boolListArgs = append(c.args.boolListArgs, &boolListArg {
-		commandArg: c.newCommandArg(n, s, u, r),
+func (c *commandConfigurer) AddBoolListArg(n string, s rune, p *[]bool, v []bool, u string, r bool) {
+	c.args.boolListArgs = append(c.args.boolListArgs, &boolListArg{
+		commandArg:   c.newCommandArg(n, s, u, r),
 		defaultValue: v,
-		value: p,
+		value:        p,
 	})
 }
 
@@ -297,54 +299,64 @@ func (c *commandConfigurer) configureUint64ListArgs() []*ArgConfig {
 }
 
 func (c *commandConfigurer) configureCommandArgType(a *commandArg, v interface{}, d interface{}) *ArgConfig {
-	if v != nil {
-		switch v.(type) {
-		case *bool:
-			val := v.(*bool)
+	switch v.(type) {
+	case *bool:
+		if val, ok := v.(*bool); ok && val != nil {
 			*val = d.(bool)
 			v = val
-		case *[]bool:
-			val := v.(*[]bool)
+		}
+	case *[]bool:
+		if val, ok := v.(*[]bool); ok && val != nil {
 			*val = d.([]bool)
 			v = val
-		case *int:
-			val := v.(*int)
+		}
+	case *int:
+		if val, ok := v.(*int); ok && val != nil {
 			*val = d.(int)
 			v = val
-		case *[]int:
-			val := v.(*[]int)
+		}
+	case *[]int:
+		if val, ok := v.(*[]int); ok && val != nil {
 			*val = d.([]int)
 			v = val
-		case *int64:
-			val := v.(*int64)
+		}
+	case *int64:
+		if val, ok := v.(*int64); ok && val != nil {
 			*val = d.(int64)
 			v = val
-		case *[]int64:
-			val := v.(*[]int64)
+		}
+	case *[]int64:
+		if val, ok := v.(*[]int64); ok && val != nil {
 			*val = d.([]int64)
 			v = val
-		case *string:
-			val := v.(*string)
+		}
+	case *string:
+		if val, ok := v.(*string); ok && val != nil {
 			*val = d.(string)
 			v = val
-		case *[]string:
-			val := v.(*[]string)
+		}
+	case *[]string:
+		if val, ok := v.(*[]string); ok && val != nil {
 			*val = d.([]string)
 			v = val
-		case *uint:
-			val := v.(*uint)
+		}
+	case *uint:
+		if val, ok := v.(*uint); ok && val != nil {
 			*val = d.(uint)
 			v = val
-		case *[]uint:
-			val := v.(*[]uint)
+		}
+	case *[]uint:
+		if val, ok := v.(*[]uint); ok && val != nil {
 			*val = d.([]uint)
 			v = val
-		case *uint64:
-			val := v.(*uint64)
+		}
+	case *uint64:
+		if val, ok := v.(*uint64); ok && val != nil {
 			*val = d.(uint64)
 			v = val
-		case *[]uint64:
-			val := v.(*[]uint64)
+		}
+	case *[]uint64:
+		if val, ok := v.(*[]uint64); ok && val != nil {
 			*val = d.([]uint64)
 			v = val
 		}

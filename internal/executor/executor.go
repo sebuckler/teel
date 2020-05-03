@@ -10,14 +10,14 @@ type Executor interface {
 }
 
 type executor struct {
-	logger     logger.Logger
-	runner     cli.Runner
+	logger logger.Logger
+	runner cli.Runner
 }
 
 func New(l logger.Logger, r cli.Runner) Executor {
 	return &executor{
-		logger:     l,
-		runner:     r,
+		logger: l,
+		runner: r,
 	}
 }
 
