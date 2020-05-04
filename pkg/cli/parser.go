@@ -108,7 +108,7 @@ func (p *parser) parseGoFlagArgs(a []string) error {
 
 func (p *parser) parsePosixArgs(c *parsedCommand) error {
 	if len(c.args) == 0 {
-		return nil
+		return handleEmptyArgs(c.Name, c.argConfigs)
 	}
 
 	lastParsedArg := map[string][]string{}
@@ -124,6 +124,12 @@ func (p *parser) parsePosixArgs(c *parsedCommand) error {
 
 		if arg == "--" && argIndex == terminatorIndex {
 			terminated = true
+
+			continue
+		}
+
+		if terminated {
+			operands = append(operands, arg)
 
 			continue
 		}
@@ -166,12 +172,6 @@ func (p *parser) parsePosixArgs(c *parsedCommand) error {
 					break
 				}
 			}
-
-			continue
-		}
-
-		if terminated {
-			operands = append(operands, arg)
 
 			continue
 		}
@@ -350,6 +350,20 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 		default:
 			return errors.New("invalid POSIX option: -" + arg.name)
 		}
+	}
+
+	return nil
+}
+
+func handleEmptyArgs(n string, a []*ArgConfig) error {
+	if len(a) > 0 {
+		errMsg := "must provide option for command"
+
+		if n != "" {
+			errMsg += ": " + n
+		}
+
+		return errors.New(errMsg)
 	}
 
 	return nil

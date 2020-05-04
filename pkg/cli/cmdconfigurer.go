@@ -139,7 +139,6 @@ func (c *commandConfigurer) configureArgs() []*ArgConfig {
 	var argConfigs []*ArgConfig
 
 	argConfigs = append(argConfigs, c.configureBoolArgs()...)
-	argConfigs = append(argConfigs, c.configureBoolListArgs()...)
 	argConfigs = append(argConfigs, c.configureIntArgs()...)
 	argConfigs = append(argConfigs, c.configureIntListArgs()...)
 	argConfigs = append(argConfigs, c.configureInt64Args()...)
@@ -163,17 +162,6 @@ func (c *commandConfigurer) configureBoolArgs() []*ArgConfig {
 	}
 
 	return boolArgConfigs
-}
-
-func (c *commandConfigurer) configureBoolListArgs() []*ArgConfig {
-	var boolListArgConfigs []*ArgConfig
-
-	for _, arg := range c.args.boolListArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
-		boolListArgConfigs = append(boolListArgConfigs, argConfig)
-	}
-
-	return boolListArgConfigs
 }
 
 func (c *commandConfigurer) configureIntArgs() []*ArgConfig {
