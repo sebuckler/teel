@@ -11,16 +11,17 @@ func NewRunner(c CommandConfigurer, p Parser, v string, e ErrorBehavior) Runner 
 
 func (r *runner) Run() error {
 	cmdConfig := r.cmd.Configure()
+	parsedCmd, parseErr := r.parser.Parse(cmdConfig)
 
-	if parseErr := r.parser.Parse(cmdConfig); parseErr != nil {
+	if parseErr != nil {
 		return parseErr
 	}
 
-	if cmdConfig.Run != nil {
+	if parsedCmd.Run != nil {
 		cmdConfig.Run(cmdConfig.Context, cmdConfig.Operands)
 	}
 
-	for _, subCmd := range cmdConfig.Subcommands {
+	for _, subCmd := range parsedCmd.Subcommands {
 		subCmd.Run(subCmd.Context, subCmd.Operands)
 	}
 

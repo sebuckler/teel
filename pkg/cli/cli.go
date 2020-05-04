@@ -149,13 +149,13 @@ type parsedArg struct {
 type parsedCommand struct {
 	args        []string
 	argConfigs  []*ArgConfig
-	context     context.Context
-	name        string
-	operands    []string
+	Context     context.Context
+	Name        string
+	Operands    []string
 	parentCmd   string
 	parsedArgs  []*parsedArg
-	run         CommandRunFunc
-	subcommands []*parsedCommand
+	Run         CommandRunFunc
+	Subcommands []*parsedCommand
 }
 
 type ArgAdder interface {
@@ -189,7 +189,7 @@ type commandConfigurer struct {
 }
 
 type Parser interface {
-	Parse(c *CommandConfig) error
+	Parse(c *CommandConfig) (*parsedCommand, error)
 }
 
 type parser struct {

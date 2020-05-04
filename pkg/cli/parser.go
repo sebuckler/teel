@@ -15,7 +15,7 @@ func NewParser(a ArgSyntax, d DuplicateSubcommands) Parser {
 	}
 }
 
-func (p *parser) Parse(c *CommandConfig) error {
+func (p *parser) Parse(c *CommandConfig) (*parsedCommand, error) {
 	args := os.Args[1:]
 	rootCmd := p.parseRootCmd(c)
 	p.parsedCommands = append(p.parsedCommands, rootCmd)
@@ -23,11 +23,11 @@ func (p *parser) Parse(c *CommandConfig) error {
 
 	for _, cmd := range p.parsedCommands {
 		if argErr := p.parseArgs(cmd); argErr != nil {
-			return argErr
+			return nil, argErr
 		}
 	}
 
-	return nil
+	return rootCmd, nil
 }
 
 func (p *parser) mapSubcommands(a []string, c *CommandConfig, l *parsedCommand) {
@@ -43,19 +43,20 @@ func (p *parser) mapSubcommands(a []string, c *CommandConfig, l *parsedCommand) 
 		if arg == cmd.Name {
 			parsedCmd := &parsedCommand{
 				argConfigs: cmd.Args,
-				context:    cmd.Context,
-				name:       cmd.Name,
+				Context:    cmd.Context,
+				Name:       cmd.Name,
 				parentCmd:  c.Name,
-				run:        cmd.Run,
+				Run:        cmd.Run,
 			}
 			p.parsedCommands = append(p.parsedCommands, parsedCmd)
+			l.Subcommands = append(l.Subcommands, parsedCmd)
 			lastParsedCmd = parsedCmd
 			argMapped = true
 
 			break
 		}
 
-		if l.name == cmd.Name && len(cmd.Subcommands) > 0 {
+		if l.Name == cmd.Name && len(cmd.Subcommands) > 0 {
 			p.mapSubcommands(a, cmd, l)
 		}
 	}
@@ -79,8 +80,8 @@ func (p *parser) parseRootCmd(c *CommandConfig) *parsedCommand {
 	return &parsedCommand{
 		args:       []string{},
 		argConfigs: c.Args,
-		context:    c.Context,
-		run:        c.Run,
+		Context:    c.Context,
+		Run:        c.Run,
 	}
 }
 
@@ -192,7 +193,7 @@ func (p *parser) parsePosixArgs(c *parsedCommand) error {
 	}
 
 	c.parsedArgs = parsedArgs
-	c.operands = operands
+	c.Operands = operands
 
 	return p.bindArgs(c)
 }
@@ -377,6 +378,6 @@ func getPosixTerminatorIndex(a []string) int {
 }
 
 func isValidPosixOptionName(s string, r rune) bool {
-	return (s == "" || len(s) > 1) || ((s[0] < 'a' || s[0] > 'z') && (s[0] < 'A' || s[0] > 'Z')) ||
-		((r < 'a' || r > 'z') && (r < 'A' || r > 'Z')) || (s[0] == 'W' || r == 'W')
+	return !((s == "" || len(s) > 1) || ((s[0] < 'a' || s[0] > 'z') && (s[0] < 'A' || s[0] > 'Z')) ||
+		((r < 'a' || r > 'z') && (r < 'A' || r > 'Z')) || (s[0] == 'W' || r == 'W'))
 }
