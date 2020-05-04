@@ -36,14 +36,6 @@ func (c *commandConfigurer) AddBoolArg(n string, s rune, p *bool, v bool, u stri
 	})
 }
 
-func (c *commandConfigurer) AddBoolListArg(n string, s rune, p *[]bool, v []bool, u string, r bool) {
-	c.args.boolListArgs = append(c.args.boolListArgs, &boolListArg{
-		commandArg:   c.newCommandArg(n, s, u, r),
-		defaultValue: v,
-		value:        p,
-	})
-}
-
 func (c *commandConfigurer) AddIntArg(n string, s rune, p *int, v int, u string, r bool) {
 	c.args.intArgs = append(c.args.intArgs, &intArg{
 		commandArg:   c.newCommandArg(n, s, u, r),
@@ -299,11 +291,6 @@ func (c *commandConfigurer) configureCommandArgType(a *commandArg, v interface{}
 	case *bool:
 		if val, ok := v.(*bool); ok && val != nil {
 			*val = d.(bool)
-			v = val
-		}
-	case *[]bool:
-		if val, ok := v.(*[]bool); ok && val != nil {
-			*val = d.([]bool)
 			v = val
 		}
 	case *int:

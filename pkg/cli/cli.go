@@ -40,12 +40,6 @@ type boolArg struct {
 	value        *bool
 }
 
-type boolListArg struct {
-	*commandArg
-	defaultValue []bool
-	value        *[]bool
-}
-
 type intArg struct {
 	*commandArg
 	defaultValue int
@@ -108,7 +102,6 @@ type uint64ListArg struct {
 
 type commandArgs struct {
 	boolArgs       []*boolArg
-	boolListArgs   []*boolListArg
 	intArgs        []*intArg
 	intListArgs    []*intListArg
 	int64Args      []*int64Arg
@@ -160,7 +153,6 @@ type parsedCommand struct {
 
 type ArgAdder interface {
 	AddBoolArg(n string, s rune, p *bool, v bool, u string, r bool)
-	AddBoolListArg(n string, s rune, p *[]bool, v []bool, u string, r bool)
 	AddIntArg(n string, s rune, p *int, v int, u string, r bool)
 	AddIntListArg(n string, s rune, p *[]int, v []int, u string, r bool)
 	AddInt64Arg(n string, s rune, p *int64, v int64, u string, r bool)

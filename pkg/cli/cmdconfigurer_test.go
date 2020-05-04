@@ -18,7 +18,6 @@ func getConfigurerTestCases() map[string]func(t *testing.T, n string) {
 	return map[string]func(t *testing.T, n string){
 		"should have only command defined":              shouldHaveOnlyCommandDefined,
 		"should have command with only bool arg":        shouldHaveCommandWithOnlyBoolArg,
-		"should have command with only bool list arg":   shouldHaveCommandWithOnlyBoolListArg,
 		"should have command with only int arg":         shouldHaveCommandWithOnlyIntArg,
 		"should have command with only int list arg":    shouldHaveCommandWithOnlyIntListArg,
 		"should have command with only int64 arg":       shouldHaveCommandWithOnlyInt64Arg,
@@ -49,18 +48,6 @@ func shouldHaveCommandWithOnlyBoolArg(t *testing.T, n string) {
 	cmd.AddBoolArg("bar", 'b', nil, false, "", false)
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*bool)
-
-	if len(config.Args) != 1 || config.Args[0].Name != "bar" || !ok {
-		t.Fail()
-		t.Log(n + ": args incorrectly configured")
-	}
-}
-
-func shouldHaveCommandWithOnlyBoolListArg(t *testing.T, n string) {
-	cmd := cli.NewCommand("foo", context.Background())
-	cmd.AddBoolListArg("bar", 'b', nil, []bool{false}, "", false)
-	config := cmd.Configure()
-	_, ok := config.Args[0].Value.(*[]bool)
 
 	if len(config.Args) != 1 || config.Args[0].Name != "bar" || !ok {
 		t.Fail()
