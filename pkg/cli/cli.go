@@ -182,12 +182,10 @@ type parser struct {
 }
 
 type Runner interface {
-	Run() error
+	Run(p *ParsedCommand) error
 }
 
 type runner struct {
-	cmd         CommandConfigurer
 	errBehavior ErrorBehavior
-	parser      Parser
 	version     string
 }

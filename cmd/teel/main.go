@@ -23,8 +23,8 @@ func main() {
 		siteScaffolder := scaffolder.New(directives.NewConfig())
 		cmdBuilder := cmdbuilder.New(fileLogger, siteScaffolder)
 		parser := cli.NewParser(cli.POSIX)
-		runner := cli.NewRunner(cmdBuilder.Build(), parser, version, cli.ExitOnError)
-		cmdExecutor := executor.New(fileLogger, runner)
+		runner := cli.NewRunner(version, cli.ExitOnError)
+		cmdExecutor := executor.New(cmdBuilder, fileLogger, parser, runner)
 		execErr := cmdExecutor.Execute()
 
 		if execErr != nil {
