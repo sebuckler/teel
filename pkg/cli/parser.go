@@ -10,11 +10,11 @@ import (
 func NewParser(a ArgSyntax) Parser {
 	return &parser{
 		argSyntax:      a,
-		parsedCommands: []*parsedCommand{},
+		parsedCommands: []*ParsedCommand{},
 	}
 }
 
-func (p *parser) Parse(c *CommandConfig) (*parsedCommand, error) {
+func (p *parser) Parse(c *CommandConfig) (*ParsedCommand, error) {
 	args := os.Args[1:]
 	rootCmd := p.parseRootCmd(c)
 	p.parsedCommands = append(p.parsedCommands, rootCmd)
@@ -29,18 +29,18 @@ func (p *parser) Parse(c *CommandConfig) (*parsedCommand, error) {
 	return rootCmd, nil
 }
 
-func (p *parser) mapSubcommands(a []string, c *CommandConfig, l *parsedCommand) {
+func (p *parser) mapSubcommands(a []string, c *CommandConfig, l *ParsedCommand) {
 	if len(a) == 0 || l == nil {
 		return
 	}
 
 	arg := a[0]
 	argMapped := false
-	var lastParsedCmd *parsedCommand
+	var lastParsedCmd *ParsedCommand
 
 	for _, cmd := range c.Subcommands {
 		if arg == cmd.Name {
-			parsedCmd := &parsedCommand{
+			parsedCmd := &ParsedCommand{
 				argConfigs: cmd.Args,
 				Context:    cmd.Context,
 				Name:       cmd.Name,
@@ -75,8 +75,8 @@ func (p *parser) mapSubcommands(a []string, c *CommandConfig, l *parsedCommand) 
 	p.mapSubcommands(a[1:], c, lastParsedCmd)
 }
 
-func (p *parser) parseRootCmd(c *CommandConfig) *parsedCommand {
-	return &parsedCommand{
+func (p *parser) parseRootCmd(c *CommandConfig) *ParsedCommand {
+	return &ParsedCommand{
 		args:       []string{},
 		argConfigs: c.Args,
 		Context:    c.Context,
@@ -84,7 +84,7 @@ func (p *parser) parseRootCmd(c *CommandConfig) *parsedCommand {
 	}
 }
 
-func (p *parser) parseArgs(c *parsedCommand) error {
+func (p *parser) parseArgs(c *ParsedCommand) error {
 	switch p.argSyntax {
 	case GNU:
 		return p.parseGnuArgs(c.args)
@@ -105,7 +105,7 @@ func (p *parser) parseGoFlagArgs(a []string) error {
 	panic("implement me")
 }
 
-func (p *parser) parsePosixArgs(c *parsedCommand) error {
+func (p *parser) parsePosixArgs(c *ParsedCommand) error {
 	if len(c.args) == 0 {
 		return handleEmptyArgs(c.Name, c.argConfigs)
 	}
@@ -196,7 +196,7 @@ func (p *parser) parsePosixArgs(c *parsedCommand) error {
 	return p.bindArgs(c)
 }
 
-func (p *parser) bindArgs(c *parsedCommand) error {
+func (p *parser) bindArgs(c *ParsedCommand) error {
 	if len(c.parsedArgs) == 0 {
 		return nil
 	}
