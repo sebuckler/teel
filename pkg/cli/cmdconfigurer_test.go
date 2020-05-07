@@ -7,9 +7,7 @@ import (
 )
 
 func TestCommandConfigurer_Configure(t *testing.T) {
-	testCases := getConfigurerTestCases()
-
-	for name, test := range testCases {
+	for name, test := range getConfigurerTestCases() {
 		test(t, name)
 	}
 }

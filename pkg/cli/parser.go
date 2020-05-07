@@ -7,10 +7,9 @@ import (
 	"strings"
 )
 
-func NewParser(a ArgSyntax, d DuplicateSubcommands) Parser {
+func NewParser(a ArgSyntax) Parser {
 	return &parser{
 		argSyntax:      a,
-		dupSubcmd:      d,
 		parsedCommands: []*parsedCommand{},
 	}
 }
@@ -87,11 +86,11 @@ func (p *parser) parseRootCmd(c *CommandConfig) *parsedCommand {
 
 func (p *parser) parseArgs(c *parsedCommand) error {
 	switch p.argSyntax {
-	case Gnu:
+	case GNU:
 		return p.parseGnuArgs(c.args)
 	case GoFlag:
 		return p.parseGoFlagArgs(c.args)
-	case Posix:
+	case POSIX:
 		return p.parsePosixArgs(c)
 	default:
 		return errors.New("unsupported ArgSyntax")
@@ -148,7 +147,6 @@ func (p *parser) parsePosixArgs(c *parsedCommand) error {
 					if !isValidPosixOptionName(argConfig.Name, argConfig.ShortName) {
 						return errors.New("invalid POSIX option name: -" + option)
 					}
-
 					for _, pArg := range parsedArgs {
 						if option == pArg.name && !argConfig.Repeatable {
 							return errors.New("non-repeatable POSIX option: -" + option)

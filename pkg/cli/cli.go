@@ -7,17 +7,9 @@ import (
 type ArgSyntax int
 
 const (
-	Gnu ArgSyntax = iota
+	GNU ArgSyntax = iota
 	GoFlag
-	Posix
-)
-
-type DuplicateSubcommands int
-
-const (
-	Error DuplicateSubcommands = iota
-	BreadthFirst
-	DepthFirst
+	POSIX
 )
 
 type ErrorBehavior int
@@ -186,7 +178,6 @@ type Parser interface {
 
 type parser struct {
 	argSyntax      ArgSyntax
-	dupSubcmd      DuplicateSubcommands
 	parsedCommands []*parsedCommand
 }
 
