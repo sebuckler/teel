@@ -22,7 +22,7 @@ func main() {
 		fileLogger := logger.New(f, nil)
 		siteScaffolder := scaffolder.New(directives.NewConfig())
 		cmdBuilder := cmdbuilder.New(fileLogger, siteScaffolder)
-		parser := cli.NewParser(cli.POSIX)
+		parser := cli.NewParser(cli.GNU)
 		runner := cli.NewRunner(version, cli.ExitOnError)
 		cmdExecutor := executor.New(cmdBuilder, fileLogger, parser, runner)
 		execErr := cmdExecutor.Execute()

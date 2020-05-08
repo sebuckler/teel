@@ -28,8 +28,14 @@ func (c *commandBuilder) Build() cli.CommandConfigurer {
 	var a bool
 	var b string
 	rootCmd := cli.NewCommand("", context.Background())
-	rootCmd.AddBoolArg("a", 'a', &a, false, "Is first letter of alphabet", false)
-	rootCmd.AddStringArg("b", 'b', &b, "second", "Second letter of alphabet", false)
+	rootCmd.AddBoolArg(&a, false, &cli.ArgDefinition{
+		Name:       "a",
+		ShortName:  'a',
+	})
+	rootCmd.AddStringArg(&b, "second", &cli.ArgDefinition{
+		Name:       "b",
+		ShortName:  'b',
+	})
 	rootCmd.AddRunFunc(func(ctx context.Context, o []string) {
 		fmt.Print("a: ")
 		fmt.Print(a)
@@ -38,6 +44,11 @@ func (c *commandBuilder) Build() cli.CommandConfigurer {
 		fmt.Println("welcome to the thunderdome")
 	})
 	subCmd := cli.NewCommand("subby", context.Background())
+	file := "filename"
+	subCmd.AddStringArg(&file, "", &cli.ArgDefinition{
+		Name:       "file",
+		ShortName:  'f',
+	})
 	subCmd.AddRunFunc(func(ctx context.Context, o []string) {
 		fmt.Println("and me!")
 	})

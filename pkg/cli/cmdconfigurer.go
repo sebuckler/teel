@@ -28,89 +28,89 @@ func (c *commandConfigurer) AddSubcommand(cmd CommandConfigurer) {
 	c.subcommands = append(c.subcommands, cmd)
 }
 
-func (c *commandConfigurer) AddBoolArg(n string, s rune, p *bool, v bool, u string, r bool) {
+func (c *commandConfigurer) AddBoolArg(p *bool, v bool, a *ArgDefinition) {
 	c.args.boolArgs = append(c.args.boolArgs, &boolArg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddIntArg(n string, s rune, p *int, v int, u string, r bool) {
+func (c *commandConfigurer) AddIntArg(p *int, v int, a *ArgDefinition) {
 	c.args.intArgs = append(c.args.intArgs, &intArg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddIntListArg(n string, s rune, p *[]int, v []int, u string, r bool) {
+func (c *commandConfigurer) AddIntListArg(p *[]int, v []int, a *ArgDefinition) {
 	c.args.intListArgs = append(c.args.intListArgs, &intListArg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddInt64Arg(n string, s rune, p *int64, v int64, u string, r bool) {
+func (c *commandConfigurer) AddInt64Arg(p *int64, v int64, a *ArgDefinition) {
 	c.args.int64Args = append(c.args.int64Args, &int64Arg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddInt64ListArg(n string, s rune, p *[]int64, v []int64, u string, r bool) {
+func (c *commandConfigurer) AddInt64ListArg(p *[]int64, v []int64, a *ArgDefinition) {
 	c.args.int64ListArgs = append(c.args.int64ListArgs, &int64ListArg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddStringArg(n string, s rune, p *string, v string, u string, r bool) {
+func (c *commandConfigurer) AddStringArg(p *string, v string, a *ArgDefinition) {
 	c.args.stringArgs = append(c.args.stringArgs, &stringArg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddStringListArg(n string, s rune, p *[]string, v []string, u string, r bool) {
+func (c *commandConfigurer) AddStringListArg(p *[]string, v []string, a *ArgDefinition) {
 	c.args.stringListArgs = append(c.args.stringListArgs, &stringListArg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddUintArg(n string, s rune, p *uint, v uint, u string, r bool) {
+func (c *commandConfigurer) AddUintArg(p *uint, v uint, a *ArgDefinition) {
 	c.args.uintArgs = append(c.args.uintArgs, &uintArg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddUintListArg(n string, s rune, p *[]uint, v []uint, u string, r bool) {
+func (c *commandConfigurer) AddUintListArg(p *[]uint, v []uint, a *ArgDefinition) {
 	c.args.uintListArgs = append(c.args.uintListArgs, &uintListArg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddUint64Arg(n string, s rune, p *uint64, v uint64, u string, r bool) {
+func (c *commandConfigurer) AddUint64Arg(p *uint64, v uint64, a *ArgDefinition) {
 	c.args.uint64Args = append(c.args.uint64Args, &uint64Arg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddUint64ListArg(n string, s rune, p *[]uint64, v []uint64, u string, r bool) {
+func (c *commandConfigurer) AddUint64ListArg(p *[]uint64, v []uint64, a *ArgDefinition) {
 	c.args.uint64ListArgs = append(c.args.uint64ListArgs, &uint64ListArg{
-		commandArg:   c.newCommandArg(n, s, u, r),
+		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
 	})
@@ -126,12 +126,17 @@ func (c *commandConfigurer) Configure() *CommandConfig {
 	}
 }
 
-func (c *commandConfigurer) newCommandArg(n string, s rune, u string, r bool) *commandArg {
+func (c *commandConfigurer) newCommandArg(a *ArgDefinition) *commandArg {
+	if a == nil {
+		return &commandArg{}
+	}
+
 	return &commandArg{
-		name:       n,
-		shortName:  s,
-		usageText:  u,
-		repeatable: r,
+		name:       a.Name,
+		shortName:  a.ShortName,
+		usageText:  a.UsageText,
+		repeatable: a.Repeatable,
+		required:   a.Required,
 	}
 }
 

@@ -19,11 +19,20 @@ const (
 	ContinueOnError
 )
 
+type ArgDefinition struct {
+	Name       string
+	ShortName  rune
+	UsageText  string
+	Repeatable bool
+	Required   bool
+}
+
 type commandArg struct {
 	name       string
 	shortName  rune
 	usageText  string
 	repeatable bool
+	required   bool
 }
 
 type boolArg struct {
@@ -131,6 +140,18 @@ type parsedArg struct {
 	value   []string
 }
 
+type ParsedCommand struct {
+	args        []string
+	argConfigs  []*ArgConfig
+	Context     context.Context
+	Name        string
+	Operands    []string
+	parentCmd   string
+	parsedArgs  []*parsedArg
+	Run         CommandRunFunc
+	Subcommands []*ParsedCommand
+}
+
 type argParserContext struct {
 	argConfigs      []*ArgConfig
 	lastParsedArg   map[string][]string
@@ -144,30 +165,18 @@ type argParserRule func(a string, i int, c *argParserContext) (bool, error)
 
 type argParserInit func(a []string) *argParserContext
 
-type ParsedCommand struct {
-	args        []string
-	argConfigs  []*ArgConfig
-	Context     context.Context
-	Name        string
-	Operands    []string
-	parentCmd   string
-	parsedArgs  []*parsedArg
-	Run         CommandRunFunc
-	Subcommands []*ParsedCommand
-}
-
 type ArgAdder interface {
-	AddBoolArg(n string, s rune, p *bool, v bool, u string, r bool)
-	AddIntArg(n string, s rune, p *int, v int, u string, r bool)
-	AddIntListArg(n string, s rune, p *[]int, v []int, u string, r bool)
-	AddInt64Arg(n string, s rune, p *int64, v int64, u string, r bool)
-	AddInt64ListArg(n string, s rune, p *[]int64, v []int64, u string, r bool)
-	AddStringArg(n string, s rune, p *string, v string, u string, r bool)
-	AddStringListArg(n string, s rune, p *[]string, v []string, u string, r bool)
-	AddUintArg(n string, s rune, p *uint, v uint, u string, r bool)
-	AddUintListArg(n string, s rune, p *[]uint, v []uint, u string, r bool)
-	AddUint64Arg(n string, s rune, p *uint64, v uint64, u string, r bool)
-	AddUint64ListArg(n string, s rune, p *[]uint64, v []uint64, u string, r bool)
+	AddBoolArg(p *bool, v bool, a *ArgDefinition)
+	AddIntArg(p *int, v int, a *ArgDefinition)
+	AddIntListArg(p *[]int, v []int, a *ArgDefinition)
+	AddInt64Arg(p *int64, v int64, a *ArgDefinition)
+	AddInt64ListArg(p *[]int64, v []int64, a *ArgDefinition)
+	AddStringArg(p *string, v string, a *ArgDefinition)
+	AddStringListArg(p *[]string, v []string, a *ArgDefinition)
+	AddUintArg(p *uint, v uint, a *ArgDefinition)
+	AddUintListArg(p *[]uint, v []uint, a *ArgDefinition)
+	AddUint64Arg(p *uint64, v uint64, a *ArgDefinition)
+	AddUint64ListArg(p *[]uint64, v []uint64, a *ArgDefinition)
 }
 
 type CommandConfigurer interface {

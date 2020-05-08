@@ -147,6 +147,9 @@ func getGnuRules() []argParserRule {
 		checkGnuOptionValidity,
 		checkPosixArgsTerminated,
 		checkPosixArgIsOperand,
+		checkGnuArgIsLongOption,
+		checkPosixArgIsOption,
+		checkPosixArgIsOptionArgument,
 		func(a string, i int, c *argParserContext) (bool, error) {
 			return true, nil
 		},
@@ -156,6 +159,52 @@ func getGnuRules() []argParserRule {
 func checkGnuOptionValidity(a string, i int, c *argParserContext) (bool, error) {
 	if i == 0 && !strings.HasPrefix(a, "-") && !strings.HasPrefix(a, "--") {
 		return false, errors.New("invalid GNU option: " + a)
+	}
+
+	return false, nil
+}
+
+func checkGnuArgIsLongOption(a string, i int, c *argParserContext) (bool, error) {
+	if strings.HasPrefix(a, "--") && len(a) > 2 {
+		option := strings.TrimPrefix(a, "--")
+
+		for _, argConfig := range c.argConfigs {
+			if option != argConfig.Name {
+				continue
+			}
+
+			for _, argNamePart := range strings.Split(argConfig.Name, "--") {
+				for _, char := range argNamePart {
+					if !isValidPosixOptionName(string(char), char) {
+						return false, errors.New("invalid GNU option name: --" + option)
+					}
+				}
+			}
+
+			for _, pArg := range c.parsedArgs {
+				if option == pArg.name && !argConfig.Repeatable {
+					return false, errors.New("non-repeatable GNU option: --" + option)
+				}
+			}
+
+			c.parsedArgs = append(c.parsedArgs, &parsedArg{
+				bindVal: argConfig.Value,
+				name:    option,
+				value:   []string{},
+			})
+
+			if _, ok := argConfig.Value.(*bool); ok {
+				c.lastParsedArg = map[string][]string{option: {""}}
+
+				break
+			}
+
+			c.lastParsedArg = map[string][]string{option: {}}
+
+			break
+		}
+
+		return true, nil
 	}
 
 	return false, nil
@@ -229,6 +278,7 @@ func checkPosixArgIsOption(a string, i int, c *argParserContext) (bool, error) {
 				if !isValidPosixOptionName(argConfig.Name, argConfig.ShortName) {
 					return false, errors.New("invalid POSIX option name: -" + option)
 				}
+
 				for _, pArg := range c.parsedArgs {
 					if option == pArg.name && !argConfig.Repeatable {
 						return false, errors.New("non-repeatable POSIX option: -" + option)
