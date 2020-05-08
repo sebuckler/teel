@@ -24,6 +24,10 @@ func (p *parser) Parse(c *CommandConfig) (*ParsedCommand, error) {
 		if argErr := p.parseArgs(cmd); argErr != nil {
 			return nil, argErr
 		}
+
+		if bindErr := p.bindArgs(cmd); bindErr != nil {
+			return nil, bindErr
+		}
 	}
 
 	return rootCmd, nil
@@ -93,7 +97,7 @@ func (p *parser) parseArgs(c *ParsedCommand) error {
 	case POSIX:
 		return p.parsePosixArgs(c)
 	default:
-		return errors.New("unsupported ArgSyntax")
+		return errors.New("unsupported argument parsing syntax")
 	}
 }
 
@@ -105,95 +109,149 @@ func (p *parser) parseGoFlagArgs(a []string) error {
 	panic("implement me")
 }
 
+func getPosixArgParserContext(a []string) *argParserContext {
+	return &argParserContext{
+		lastParsedArg:   map[string][]string{},
+		terminated:      false,
+		terminatorIndex: getPosixTerminatorIndex(a),
+	}
+}
+
+func getPosixRules() []func(a string, i int, c *argParserContext) (bool, error) {
+	return []func(a string, i int, c *argParserContext) (bool, error){
+		checkPosixOptionValidity,
+		checkPosixArgsTerminated,
+		checkPosixArgIsOperand,
+		checkPosixArgIsOption,
+		checkPosixArgIsOptionArgument,
+	}
+}
+
+func checkPosixOptionValidity(a string, i int, c *argParserContext) (bool, error) {
+	if i == 0 && !strings.HasPrefix(a, "-") {
+		return false, errors.New("invalid POSIX option: " + a)
+	}
+
+	return false, nil
+}
+
+func checkPosixArgsTerminated(a string, i int, c *argParserContext) (bool, error) {
+	if a == "--" && i == c.terminatorIndex {
+		c.terminated = true
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func checkPosixArgIsOperand(a string, i int, c *argParserContext) (bool, error) {
+	if c.terminated {
+		c.operands = append(c.operands, a)
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func checkPosixArgIsOption(a string, i int, c *argParserContext) (bool, error) {
+	if strings.HasPrefix(a, "-") && len(a) > 1 && a != "--" {
+		option := strings.TrimPrefix(a, "-")
+
+		for _, char := range option {
+			optName := string(char)
+
+			for _, argConfig := range c.argConfigs {
+				if optName != argConfig.Name && char != argConfig.ShortName {
+					continue
+				}
+
+				if !isValidPosixOptionName(argConfig.Name, argConfig.ShortName) {
+					return false, errors.New("invalid POSIX option name: -" + option)
+				}
+				for _, pArg := range c.parsedArgs {
+					if option == pArg.name && !argConfig.Repeatable {
+						return false, errors.New("non-repeatable POSIX option: -" + option)
+					}
+				}
+
+				c.parsedArgs = append(c.parsedArgs, &parsedArg{
+					bindVal: argConfig.Value,
+					name:    optName,
+					value:   []string{},
+				})
+
+				if _, ok := argConfig.Value.(*bool); ok {
+					c.lastParsedArg = map[string][]string{optName: {""}}
+
+					break
+				}
+
+				c.lastParsedArg = map[string][]string{optName: {}}
+
+				break
+			}
+		}
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func checkPosixArgIsOptionArgument(a string, i int, c *argParserContext) (bool, error) {
+	if len(c.lastParsedArg) > 0 {
+		for _, pArg := range c.parsedArgs {
+			if _, ok := c.lastParsedArg[pArg.name]; ok {
+				pArg.value = append(pArg.value, a)
+				c.lastParsedArg[pArg.name] = append(c.lastParsedArg[pArg.name], a)
+
+				break
+			}
+		}
+
+		return true, nil
+	}
+
+	return false, nil
+}
+
 func (p *parser) parsePosixArgs(c *ParsedCommand) error {
 	if len(c.args) == 0 {
-		return handleEmptyArgs(c.Name, c.argConfigs)
+		return nil
 	}
 
-	lastParsedArg := map[string][]string{}
-	var operands []string
-	var parsedArgs []*parsedArg
-	terminated := false
-	terminatorIndex := getPosixTerminatorIndex(c.args)
+	context := getPosixArgParserContext(c.args)
+	context.argConfigs = c.argConfigs
 
 	for argIndex, arg := range c.args {
-		if argIndex == 0 && !strings.HasPrefix(arg, "-") {
-			return errors.New("invalid POSIX option: " + arg)
-		}
+		var skip bool
+		var err error
 
-		if arg == "--" && argIndex == terminatorIndex {
-			terminated = true
+		for _, rule := range getPosixRules() {
+			skip, err = rule(arg, argIndex, context)
 
-			continue
-		}
-
-		if terminated {
-			operands = append(operands, arg)
-
-			continue
-		}
-
-		if strings.HasPrefix(arg, "-") && len(arg) > 1 && arg != "--" {
-			option := strings.TrimPrefix(arg, "-")
-
-			for _, char := range option {
-				optName := string(char)
-
-				for _, argConfig := range c.argConfigs {
-					if optName != argConfig.Name && char != argConfig.ShortName {
-						continue
-					}
-
-					if !isValidPosixOptionName(argConfig.Name, argConfig.ShortName) {
-						return errors.New("invalid POSIX option name: -" + option)
-					}
-					for _, pArg := range parsedArgs {
-						if option == pArg.name && !argConfig.Repeatable {
-							return errors.New("non-repeatable POSIX option: -" + option)
-						}
-					}
-
-					parsedArgs = append(parsedArgs, &parsedArg{
-						bindVal: argConfig.Value,
-						name:    optName,
-						value:   []string{},
-					})
-
-					if _, ok := argConfig.Value.(*bool); ok {
-						lastParsedArg = map[string][]string{optName: {""}}
-
-						break
-					}
-
-					lastParsedArg = map[string][]string{optName: {}}
-
-					break
-				}
+			if err != nil {
+				return err
 			}
 
-			continue
-		}
-
-		if len(lastParsedArg) > 0 {
-			for _, pArg := range parsedArgs {
-				if _, ok := lastParsedArg[pArg.name]; ok {
-					pArg.value = append(pArg.value, arg)
-					lastParsedArg[pArg.name] = append(lastParsedArg[pArg.name], arg)
-
-					break
-				}
+			if skip {
+				break
 			}
+		}
 
+		if skip {
 			continue
 		}
 
-		return errors.New("invalid POSIX option: " + arg)
+		return errors.New("failed to parse argument: " + arg)
 	}
 
-	c.parsedArgs = parsedArgs
-	c.Operands = operands
+	c.parsedArgs = context.parsedArgs
+	c.Operands = context.operands
 
-	return p.bindArgs(c)
+	return nil
 }
 
 func (p *parser) bindArgs(c *ParsedCommand) error {
@@ -377,20 +435,6 @@ func isValidPosixListArg(arg *parsedArg) error {
 	if len(arg.value) == 0 {
 		return errors.New("no POSIX option-arguments provided for option: -" + arg.name)
 	}
-	return nil
-}
-
-func handleEmptyArgs(n string, a []*ArgConfig) error {
-	if len(a) > 0 {
-		errMsg := "must provide option for command"
-
-		if n != "" {
-			errMsg += ": " + n
-		}
-
-		return errors.New(errMsg)
-	}
-
 	return nil
 }
 

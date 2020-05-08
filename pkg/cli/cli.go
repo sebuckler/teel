@@ -131,6 +131,15 @@ type parsedArg struct {
 	value   []string
 }
 
+type argParserContext struct {
+	argConfigs      []*ArgConfig
+	lastParsedArg   map[string][]string
+	operands        []string
+	parsedArgs      []*parsedArg
+	terminated      bool
+	terminatorIndex int
+}
+
 type ParsedCommand struct {
 	args        []string
 	argConfigs  []*ArgConfig
