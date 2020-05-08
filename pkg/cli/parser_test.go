@@ -17,6 +17,7 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 		"should error when unsupported parse syntax used":            shouldErrorWhenUnsupportedParseSyntaxUsed,
 		"should error when arg passed with no args configured":       shouldErrorWhenArgPassedWithNoArgsConfigured,
 		"should error when repeated arg is not marked as repeatable": shouldErrorWhenRepeatedArgIsNotMarkedAsRepeatable,
+		"should error when GNU first arg is invalid format":          shouldErrorWhenGnuFirstArgIsInvalidFormat,
 		"should error when POSIX first arg is invalid format":        shouldErrorWhenPosixFirstArgIsInvalidFormat,
 		"should error when configured POSIX arg name is invalid":     shouldErrorWhenConfiguredPosixArgNameIsInvalid,
 		"should error when POSIX bool opt has opt-arg":               shouldErrorWhenPosixBoolOptHasOptArg,
@@ -72,6 +73,24 @@ func shouldErrorWhenRepeatedArgIsNotMarkedAsRepeatable(t *testing.T, n string) {
 	if parseErr == nil {
 		t.Fail()
 		t.Log(n + ": did not error on non-repeatable arg being repeated")
+	}
+}
+
+func shouldErrorWhenGnuFirstArgIsInvalidFormat(t *testing.T, n string) {
+	os.Args = []string{"testcmd", "a"}
+	parser := cli.NewParser(cli.GNU)
+	a := false
+	_, parseErr := parser.Parse(&cli.CommandConfig{
+		Args: []*cli.ArgConfig{{
+			Name:      "a",
+			ShortName: 'a',
+			Value:     &a,
+		}},
+	})
+
+	if parseErr == nil {
+		t.Fail()
+		t.Log(n + ": did not return error with invalid GNU argument")
 	}
 }
 

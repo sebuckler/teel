@@ -140,6 +140,10 @@ type argParserContext struct {
 	terminatorIndex int
 }
 
+type argParserRule func(a string, i int, c *argParserContext) (bool, error)
+
+type argParserInit func(a []string) *argParserContext
+
 type ParsedCommand struct {
 	args        []string
 	argConfigs  []*ArgConfig

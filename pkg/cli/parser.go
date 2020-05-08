@@ -91,34 +91,93 @@ func (p *parser) parseRootCmd(c *CommandConfig) *ParsedCommand {
 func (p *parser) parseArgs(c *ParsedCommand) error {
 	switch p.argSyntax {
 	case GNU:
-		return p.parseGnuArgs(c.args)
+		return p.parseArgRules(c, getGnuRules(), getPosixArgParserContext)
 	case GoFlag:
 		return p.parseGoFlagArgs(c.args)
 	case POSIX:
-		return p.parsePosixArgs(c)
+		return p.parseArgRules(c, getPosixRules(), getPosixArgParserContext)
 	default:
 		return errors.New("unsupported argument parsing syntax")
 	}
-}
-
-func (p *parser) parseGnuArgs(a []string) error {
-	panic("implement me")
 }
 
 func (p *parser) parseGoFlagArgs(a []string) error {
 	panic("implement me")
 }
 
-func getPosixArgParserContext(a []string) *argParserContext {
-	return &argParserContext{
-		lastParsedArg:   map[string][]string{},
-		terminated:      false,
-		terminatorIndex: getPosixTerminatorIndex(a),
+func (p *parser) parseArgRules(c *ParsedCommand, r []argParserRule, i argParserInit) error {
+	if len(c.args) == 0 {
+		return nil
+	}
+
+	context := i(c.args)
+	context.argConfigs = c.argConfigs
+
+	for argIndex, arg := range c.args {
+		var skip bool
+		var err error
+
+		for _, rule := range r {
+			skip, err = rule(arg, argIndex, context)
+
+			if err != nil {
+				return err
+			}
+
+			if skip {
+				break
+			}
+		}
+
+		if skip {
+			continue
+		}
+
+		return errors.New("failed to parse argument: " + arg)
+	}
+
+	c.parsedArgs = context.parsedArgs
+	c.Operands = context.operands
+
+	return nil
+}
+
+func getGnuRules() []argParserRule {
+	return []argParserRule{
+		checkGnuOptionValidity,
+		checkPosixArgsTerminated,
+		checkPosixArgIsOperand,
+		func(a string, i int, c *argParserContext) (bool, error) {
+			return true, nil
+		},
 	}
 }
 
-func getPosixRules() []func(a string, i int, c *argParserContext) (bool, error) {
-	return []func(a string, i int, c *argParserContext) (bool, error){
+func checkGnuOptionValidity(a string, i int, c *argParserContext) (bool, error) {
+	if i == 0 && !strings.HasPrefix(a, "-") && !strings.HasPrefix(a, "--") {
+		return false, errors.New("invalid GNU option: " + a)
+	}
+
+	return false, nil
+}
+
+func getPosixArgParserContext(a []string) *argParserContext {
+	terminatorIndex := -1
+
+	for i, arg := range a {
+		if arg == "--" {
+			terminatorIndex = i
+		}
+	}
+
+	return &argParserContext{
+		lastParsedArg:   map[string][]string{},
+		terminatorIndex: terminatorIndex,
+	}
+}
+
+func getPosixRules() []argParserRule {
+	return []argParserRule{
 		checkPosixOptionValidity,
 		checkPosixArgsTerminated,
 		checkPosixArgIsOperand,
@@ -215,43 +274,6 @@ func checkPosixArgIsOptionArgument(a string, i int, c *argParserContext) (bool, 
 	}
 
 	return false, nil
-}
-
-func (p *parser) parsePosixArgs(c *ParsedCommand) error {
-	if len(c.args) == 0 {
-		return nil
-	}
-
-	context := getPosixArgParserContext(c.args)
-	context.argConfigs = c.argConfigs
-
-	for argIndex, arg := range c.args {
-		var skip bool
-		var err error
-
-		for _, rule := range getPosixRules() {
-			skip, err = rule(arg, argIndex, context)
-
-			if err != nil {
-				return err
-			}
-
-			if skip {
-				break
-			}
-		}
-
-		if skip {
-			continue
-		}
-
-		return errors.New("failed to parse argument: " + arg)
-	}
-
-	c.parsedArgs = context.parsedArgs
-	c.Operands = context.operands
-
-	return nil
 }
 
 func (p *parser) bindArgs(c *ParsedCommand) error {
@@ -446,18 +468,6 @@ func isValidPosixNonlistArg(arg *parsedArg) error {
 	}
 
 	return nil
-}
-
-func getPosixTerminatorIndex(a []string) int {
-	lastIndex := -1
-
-	for i, arg := range a {
-		if arg == "--" {
-			lastIndex = i
-		}
-	}
-
-	return lastIndex
 }
 
 func isValidPosixOptionName(s string, r rune) bool {
