@@ -341,6 +341,7 @@ func (c *commandConfigurer) configureCommandArgType(a *commandArg, v interface{}
 	return &ArgConfig{
 		Name:       a.name,
 		Repeatable: a.repeatable,
+		Required:   a.required,
 		ShortName:  a.shortName,
 		UsageText:  a.usageText,
 		Value:      v,

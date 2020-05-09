@@ -120,6 +120,7 @@ type CommandRunFunc func(ctx context.Context, o []string)
 type ArgConfig struct {
 	Name       string
 	Repeatable bool
+	Required   bool
 	ShortName  rune
 	UsageText  string
 	Value      interface{}
@@ -135,9 +136,11 @@ type CommandConfig struct {
 }
 
 type parsedArg struct {
-	bindVal interface{}
-	name    string
-	value   []string
+	bindVal  interface{}
+	name     string
+	rawArg   string
+	required bool
+	value    []string
 }
 
 type ParsedCommand struct {
@@ -154,7 +157,7 @@ type ParsedCommand struct {
 
 type argParserContext struct {
 	argConfigs      []*ArgConfig
-	lastParsedArg   map[string][]string
+	lastParsedArg   *parsedArg
 	operands        []string
 	parsedArgs      []*parsedArg
 	terminated      bool

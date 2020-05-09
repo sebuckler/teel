@@ -44,8 +44,8 @@ func shouldHaveOnlyCommandDefined(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyBoolArg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddBoolArg(nil, false, &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*bool)
@@ -59,8 +59,8 @@ func shouldHaveCommandWithOnlyBoolArg(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyIntArg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddIntArg(nil, 0, &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*int)
@@ -74,8 +74,8 @@ func shouldHaveCommandWithOnlyIntArg(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyIntListArg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddIntListArg(nil, []int{0}, &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*[]int)
@@ -89,8 +89,8 @@ func shouldHaveCommandWithOnlyIntListArg(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyInt64Arg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddInt64Arg(nil, 0, &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*int64)
@@ -104,8 +104,8 @@ func shouldHaveCommandWithOnlyInt64Arg(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyInt64ListArg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddInt64ListArg(nil, []int64{0}, &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*[]int64)
@@ -119,8 +119,8 @@ func shouldHaveCommandWithOnlyInt64ListArg(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyStringArg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddStringArg(nil, "", &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*string)
@@ -134,8 +134,8 @@ func shouldHaveCommandWithOnlyStringArg(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyStringListArg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddStringListArg(nil, []string{""}, &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*[]string)
@@ -149,8 +149,8 @@ func shouldHaveCommandWithOnlyStringListArg(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyUintArg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddUintArg(nil, 0, &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*uint)
@@ -164,8 +164,8 @@ func shouldHaveCommandWithOnlyUintArg(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyUintListArg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddUintListArg(nil, []uint{0}, &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*[]uint)
@@ -179,8 +179,8 @@ func shouldHaveCommandWithOnlyUintListArg(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyUint64Arg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddUint64Arg(nil, 0, &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*uint64)
@@ -194,8 +194,8 @@ func shouldHaveCommandWithOnlyUint64Arg(t *testing.T, n string) {
 func shouldHaveCommandWithOnlyUint64ListArg(t *testing.T, n string) {
 	cmd := cli.NewCommand("foo", context.Background())
 	cmd.AddUint64ListArg(nil, []uint64{0}, &cli.ArgDefinition{
-		Name:       "bar",
-		ShortName:  'b',
+		Name:      "bar",
+		ShortName: 'b',
 	})
 	config := cmd.Configure()
 	_, ok := config.Args[0].Value.(*[]uint64)

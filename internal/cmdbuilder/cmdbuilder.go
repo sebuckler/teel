@@ -29,28 +29,25 @@ func (c *commandBuilder) Build() cli.CommandConfigurer {
 	var b string
 	rootCmd := cli.NewCommand("", context.Background())
 	rootCmd.AddBoolArg(&a, false, &cli.ArgDefinition{
-		Name:       "a",
-		ShortName:  'a',
+		Name:      "a",
+		ShortName: 'a',
 	})
 	rootCmd.AddStringArg(&b, "second", &cli.ArgDefinition{
-		Name:       "b",
-		ShortName:  'b',
+		Name:      "b",
+		ShortName: 'b',
 	})
 	rootCmd.AddRunFunc(func(ctx context.Context, o []string) {
-		fmt.Print("a: ")
-		fmt.Print(a)
-		fmt.Print(", b: ")
-		fmt.Print(b + "\n")
+		fmt.Print("a: ", a, ", b: ", b, "\n")
 		fmt.Println("welcome to the thunderdome")
 	})
 	subCmd := cli.NewCommand("subby", context.Background())
 	file := "filename"
 	subCmd.AddStringArg(&file, "", &cli.ArgDefinition{
-		Name:       "file",
-		ShortName:  'f',
+		Name:      "file",
+		ShortName: 'f',
 	})
 	subCmd.AddRunFunc(func(ctx context.Context, o []string) {
-		fmt.Println("and me!")
+		fmt.Println("and me, " + file + "!")
 	})
 	rootCmd.AddSubcommand(subCmd)
 

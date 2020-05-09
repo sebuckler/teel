@@ -19,6 +19,7 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 		"should error when repeated arg is not marked as repeatable": shouldErrorWhenRepeatedArgIsNotMarkedAsRepeatable,
 		"should error when GNU first arg is invalid format":          shouldErrorWhenGnuFirstArgIsInvalidFormat,
 		"should error when configured GNU arg name is invalid":       shouldErrorWhenConfiguredGnuArgNameIsInvalid,
+		"should error when GNU optional opt-arg is invalid format":   shouldErrorWhenGnuOptionalOptArgIsInvalidFormat,
 		"should error when POSIX first arg is invalid format":        shouldErrorWhenPosixFirstArgIsInvalidFormat,
 		"should error when configured POSIX arg name is invalid":     shouldErrorWhenConfiguredPosixArgNameIsInvalid,
 		"should error when POSIX bool opt has opt-arg":               shouldErrorWhenPosixBoolOptHasOptArg,
@@ -110,6 +111,24 @@ func shouldErrorWhenConfiguredGnuArgNameIsInvalid(t *testing.T, n string) {
 	if parseErr == nil {
 		t.Fail()
 		t.Log(n + ": did not error on incorrectly configured GNU arg name")
+	}
+}
+
+func shouldErrorWhenGnuOptionalOptArgIsInvalidFormat(t *testing.T, n string) {
+	os.Args = []string{"testcmd", "--alphabet", "abc"}
+	parser := cli.NewParser(cli.GNU)
+	a := "xyz"
+	_, parseErr := parser.Parse(&cli.CommandConfig{
+		Args: []*cli.ArgConfig{{
+			Name:      "alphabet",
+			ShortName: 'a',
+			Value:     &a,
+		}},
+	})
+
+	if parseErr == nil {
+		t.Fail()
+		t.Log(n + ": did not error on GNU optional option-argument not separated by '='")
 	}
 }
 
