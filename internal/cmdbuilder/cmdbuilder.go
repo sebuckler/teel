@@ -42,7 +42,7 @@ func (c *commandBuilder) Build() cli.CommandConfigurer {
 	})
 	subCmd := cli.NewCommand("subby", context.Background())
 	file := "filename"
-	subCmd.AddStringArg(&file, "", &cli.ArgDefinition{
+	subCmd.AddStringArg(&file, "default", &cli.ArgDefinition{
 		Name:      "file",
 		ShortName: 'f',
 	})
