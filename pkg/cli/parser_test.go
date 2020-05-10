@@ -20,10 +20,10 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 		"should error when GNU first arg is invalid format":          shouldErrorWhenGnuFirstArgIsInvalidFormat,
 		"should error when configured GNU arg name is invalid":       shouldErrorWhenConfiguredGnuArgNameIsInvalid,
 		"should error when GNU optional opt-arg is invalid format":   shouldErrorWhenGnuOptionalOptArgIsInvalidFormat,
-		"should parse when GNU optional opt-arg is valid":            shouldParseWhenGnuOptionalOptArgIsValid,
+		"should parse when GNU args provided correctly":              shouldParseWhenGnuArgsProvidedCorrectly,
 		"should error when POSIX first arg is invalid format":        shouldErrorWhenPosixFirstArgIsInvalidFormat,
 		"should error when configured POSIX arg name is invalid":     shouldErrorWhenConfiguredPosixArgNameIsInvalid,
-		"should parse when POSIX opt provided correctly":             shouldParseWhenPosixOptsProvidedCorrectly,
+		"should parse when POSIX args provided correctly":            shouldParseWhenPosixArgsProvidedCorrectly,
 		"should error when bool opt has opt-arg":                     shouldErrorWhenBoolOptHasOptArg,
 		"should error when required int opt has no opt-arg":          shouldErrorWhenRequiredIntOptHasNoOptArg,
 		"should error when required int list opt has no opt-arg":     shouldErrorWhenRequiredIntListOptHasNoOptArg,
@@ -134,21 +134,95 @@ func shouldErrorWhenGnuOptionalOptArgIsInvalidFormat(t *testing.T, n string) {
 	}
 }
 
-func shouldParseWhenGnuOptionalOptArgIsValid(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "--alphabet=abc"}
-	parser := cli.NewParser(cli.GNU)
-	a := "xyz"
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "alphabet",
-			ShortName: 'a',
-			Value:     &a,
+func shouldParseWhenGnuArgsProvidedCorrectly(t *testing.T, n string) {
+	cmd := "testcmd"
+	testCases := map[string]struct {
+		args  []string
+		value func() []*cli.ArgConfig
+	}{
+		"single bool option": {[]string{cmd, "--aaa"}, func() []*cli.ArgConfig {
+			val := false
+			return []*cli.ArgConfig{{Name: "aaa", Value: &val}}
 		}},
-	})
+		"multiple bool options separate arg": {[]string{cmd, "--aaa", "--bbb"}, func() []*cli.ArgConfig {
+			val := false
+			return []*cli.ArgConfig{{Name: "aaa", Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+		"single int option": {[]string{cmd, "--aaa", "1"}, func() []*cli.ArgConfig {
+			val := 0
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"single int option with bool multiple args": {[]string{cmd, "--aaa", "--bbb", "1"}, func() []*cli.ArgConfig {
+			v1 := false
+			v2 := 0
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &v1}, {Name: "bbb", Required: true, Value: &v2}}
+		}},
+		"multiple int options": {[]string{cmd, "--aaa", "1", "--bbb", "2"}, func() []*cli.ArgConfig {
+			val := 0
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+		"single int64 option": {[]string{cmd, "--aaa", "1"}, func() []*cli.ArgConfig {
+			val := int64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"single int64 option with bool multiple args": {[]string{cmd, "--aaa", "--bbb", "1"}, func() []*cli.ArgConfig {
+			v1 := false
+			v2 := int64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &v1}, {Name: "bbb", Required: true, Value: &v2}}
+		}},
+		"multiple int64 options": {[]string{cmd, "--aaa", "1", "--bbb", "2"}, func() []*cli.ArgConfig {
+			val := int64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+		"single string option": {[]string{cmd, "--aaa", "foo"}, func() []*cli.ArgConfig {
+			val := "foobar"
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"single string option with bool multiple args": {[]string{cmd, "--aaa", "--bbb", "foo"}, func() []*cli.ArgConfig {
+			v1 := false
+			v2 := "foobar"
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &v1}, {Name: "bbb", Required: true, Value: &v2}}
+		}},
+		"multiple string options": {[]string{cmd, "--aaa", "foo", "--bbb", "bar"}, func() []*cli.ArgConfig {
+			val := "foobar"
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+		"single uint option": {[]string{cmd, "--aaa", "1"}, func() []*cli.ArgConfig {
+			val := uint(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"single uint option with bool multiple args": {[]string{cmd, "--aaa", "--bbb", "1"}, func() []*cli.ArgConfig {
+			v1 := false
+			v2 := uint(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &v1}, {Name: "bbb", Required: true, Value: &v2}}
+		}},
+		"multiple uint options": {[]string{cmd, "--aaa", "1", "--bbb", "2"}, func() []*cli.ArgConfig {
+			val := uint(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+		"single uint64 option": {[]string{cmd, "--aaa", "1"}, func() []*cli.ArgConfig {
+			val := uint64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"single uint64 option with bool multiple args": {[]string{cmd, "--aaa", "--bbb", "1"}, func() []*cli.ArgConfig {
+			v1 := false
+			v2 := uint64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &v1}, {Name: "bbb", Required: true, Value: &v2}}
+		}},
+		"multiple uint64 options": {[]string{cmd, "-a", "1", "--bbb", "2"}, func() []*cli.ArgConfig {
+			val := uint64(0)
+			return []*cli.ArgConfig{{Name: "a", Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+	}
 
-	if parseErr != nil && a != "abc" {
-		t.Fail()
-		t.Log(n + ": did not error on GNU optional option-argument not separated by '='")
+	for name, test := range testCases {
+		os.Args = test.args
+		_, parseErr := cli.NewParser(cli.GNU).Parse(&cli.CommandConfig{Args: test.value()})
+
+		if parseErr != nil {
+			t.Fail()
+			t.Log(n + ": " + name)
+		}
 	}
 }
 
@@ -188,11 +262,11 @@ func shouldErrorWhenConfiguredPosixArgNameIsInvalid(t *testing.T, n string) {
 	}
 }
 
-func shouldParseWhenPosixOptsProvidedCorrectly(t *testing.T, n string) {
+func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 	cmd := "testcmd"
 	testCases := map[string]struct {
-		args      []string
-		value     func() []*cli.ArgConfig
+		args  []string
+		value func() []*cli.ArgConfig
 	}{
 		"single bool option": {[]string{cmd, "-a"}, func() []*cli.ArgConfig {
 			val := false

@@ -556,6 +556,6 @@ func isValidPosixNonlistArg(a *parsedArg) error {
 }
 
 func isValidPosixOptionName(s string, r rune) bool {
-	return !(s == "" || ((s[0] < 'a' || s[0] > 'z') && (s[0] < 'A' || s[0] > 'Z')) ||
-		((r < 'a' || r > 'z') && (r < 'A' || r > 'Z')) || (s[0] == 'W' || r == 'W'))
+	return (s != "" && len(s) == 1 && ((s[0] >= 'a' && s[0] <= 'z') || (s[0] >= 'A' && s[0] <= 'Z')) && s[0] != 'W') ||
+		(((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')) && r != 'W')
 }
