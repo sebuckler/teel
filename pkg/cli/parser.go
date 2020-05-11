@@ -93,16 +93,12 @@ func (p *parser) parseArgs(c *ParsedCommand) error {
 	case GNU:
 		return p.parseArgRules(c, getGnuRules(), getPosixArgParserContext)
 	case GoFlag:
-		return p.parseGoFlagArgs(c.args)
+		panic("implement me")
 	case POSIX:
 		return p.parseArgRules(c, getPosixRules(), getPosixArgParserContext)
 	default:
 		return errors.New("unsupported argument parsing syntax")
 	}
-}
-
-func (p *parser) parseGoFlagArgs(a []string) error {
-	panic("implement me")
 }
 
 func (p *parser) parseArgRules(c *ParsedCommand, r []argParserRule, i argParserInit) error {
@@ -363,6 +359,23 @@ func (p *parser) bindArgs(c *ParsedCommand) error {
 			}
 
 			*(arg.bindVal.(*bool)) = true
+		case *float64:
+			if err := isValidPosixNonlistArg(arg); err != nil {
+				return err
+			}
+
+			if len(arg.value) == 0 {
+				continue
+			}
+
+			argVal := arg.value[0]
+			float64Val, float64Err := strconv.ParseFloat(argVal, 64)
+
+			if float64Err != nil || argVal == "" {
+				return errors.New("invalid option-argument: '" + argVal + "' for option: " + arg.name)
+			}
+
+			*(arg.bindVal.(*float64)) = float64Val
 		case *int:
 			if err := isValidPosixNonlistArg(arg); err != nil {
 				return err

@@ -41,6 +41,18 @@ type boolArg struct {
 	value        *bool
 }
 
+type float64Arg struct {
+	*commandArg
+	defaultValue float64
+	value        *float64
+}
+
+type float64ListArg struct {
+	*commandArg
+	defaultValue []float64
+	value        *[]float64
+}
+
 type intArg struct {
 	*commandArg
 	defaultValue int
@@ -102,17 +114,19 @@ type uint64ListArg struct {
 }
 
 type commandArgs struct {
-	boolArgs       []*boolArg
-	intArgs        []*intArg
-	intListArgs    []*intListArg
-	int64Args      []*int64Arg
-	int64ListArgs  []*int64ListArg
-	stringArgs     []*stringArg
-	stringListArgs []*stringListArg
-	uintArgs       []*uintArg
-	uintListArgs   []*uintListArg
-	uint64Args     []*uint64Arg
-	uint64ListArgs []*uint64ListArg
+	boolArgs        []*boolArg
+	float64Args     []*float64Arg
+	float64ListArgs []*float64ListArg
+	intArgs         []*intArg
+	intListArgs     []*intListArg
+	int64Args       []*int64Arg
+	int64ListArgs   []*int64ListArg
+	stringArgs      []*stringArg
+	stringListArgs  []*stringListArg
+	uintArgs        []*uintArg
+	uintListArgs    []*uintListArg
+	uint64Args      []*uint64Arg
+	uint64ListArgs  []*uint64ListArg
 }
 
 type CommandRunFunc func(ctx context.Context, o []string)
@@ -170,6 +184,8 @@ type argParserInit func(a []string) *argParserContext
 
 type ArgAdder interface {
 	AddBoolArg(p *bool, v bool, a *ArgDefinition)
+	AddFloat64Arg(p *float64, v float64, a *ArgDefinition)
+	AddFloat64ListArg(p *[]float64, v []float64, a *ArgDefinition)
 	AddIntArg(p *int, v int, a *ArgDefinition)
 	AddIntListArg(p *[]int, v []int, a *ArgDefinition)
 	AddInt64Arg(p *int64, v int64, a *ArgDefinition)

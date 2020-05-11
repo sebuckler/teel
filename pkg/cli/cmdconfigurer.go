@@ -36,6 +36,22 @@ func (c *commandConfigurer) AddBoolArg(p *bool, v bool, a *ArgDefinition) {
 	})
 }
 
+func (c *commandConfigurer) AddFloat64Arg(p *float64, v float64, a *ArgDefinition) {
+	c.args.float64Args = append(c.args.float64Args, &float64Arg {
+		commandArg:   c.newCommandArg(a),
+		defaultValue: v,
+		value:        p,
+	})
+}
+
+func (c *commandConfigurer) AddFloat64ListArg(p *[]float64, v []float64, a *ArgDefinition) {
+	c.args.float64ListArgs = append(c.args.float64ListArgs, &float64ListArg {
+		commandArg:   c.newCommandArg(a),
+		defaultValue: v,
+		value:        p,
+	})
+}
+
 func (c *commandConfigurer) AddIntArg(p *int, v int, a *ArgDefinition) {
 	c.args.intArgs = append(c.args.intArgs, &intArg{
 		commandArg:   c.newCommandArg(a),
@@ -144,6 +160,8 @@ func (c *commandConfigurer) configureArgs() []*ArgConfig {
 	var argConfigs []*ArgConfig
 
 	argConfigs = append(argConfigs, c.configureBoolArgs()...)
+	argConfigs = append(argConfigs, c.configureFloat64Args()...)
+	argConfigs = append(argConfigs, c.configureFloat64ListArgs()...)
 	argConfigs = append(argConfigs, c.configureIntArgs()...)
 	argConfigs = append(argConfigs, c.configureIntListArgs()...)
 	argConfigs = append(argConfigs, c.configureInt64Args()...)
@@ -167,6 +185,28 @@ func (c *commandConfigurer) configureBoolArgs() []*ArgConfig {
 	}
 
 	return boolArgConfigs
+}
+
+func (c *commandConfigurer) configureFloat64Args() []*ArgConfig {
+	var float64ArgConfigs []*ArgConfig
+
+	for _, arg := range c.args.float64Args {
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		float64ArgConfigs = append(float64ArgConfigs, argConfig)
+	}
+
+	return float64ArgConfigs
+}
+
+func (c *commandConfigurer) configureFloat64ListArgs() []*ArgConfig {
+	var float64ListArgConfigs []*ArgConfig
+
+	for _, arg := range c.args.float64ListArgs {
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		float64ListArgConfigs = append(float64ListArgConfigs, argConfig)
+	}
+
+	return float64ListArgConfigs
 }
 
 func (c *commandConfigurer) configureIntArgs() []*ArgConfig {
