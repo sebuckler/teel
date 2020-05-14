@@ -17,6 +17,8 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 		"should error when unsupported parse syntax used":            shouldErrorWhenUnsupportedParseSyntaxUsed,
 		"should error when arg passed with no args configured":       shouldErrorWhenArgPassedWithNoArgsConfigured,
 		"should error when repeated arg is not repeatable":           shouldErrorWhenRepeatedArgIsNotRepeatable,
+		"should error when GoFlag first arg is invalid format":       shouldErrorWhenGoFlagFirstArgIsInvalidFormat,
+		"should parse when GoFlag args provided correctly":           shouldParseWhenGoFlagArgsProvidedCorrectly,
 		"should error when GNU first arg is invalid format":          shouldErrorWhenGnuFirstArgIsInvalidFormat,
 		"should error when configured GNU arg name is invalid":       shouldErrorWhenConfiguredGnuArgNameIsInvalid,
 		"should error when GNU optional opt-arg is invalid format":   shouldErrorWhenGnuOptionalOptArgIsInvalidFormat,
@@ -79,6 +81,132 @@ func shouldErrorWhenRepeatedArgIsNotRepeatable(t *testing.T, n string) {
 	if parseErr == nil {
 		t.Fail()
 		t.Log(n + ": did not error on non-repeatable arg being repeated")
+	}
+}
+
+func shouldErrorWhenGoFlagFirstArgIsInvalidFormat(t *testing.T, n string) {
+	os.Args = []string{"testcmd", "-a=value"}
+	parser := cli.NewParser(cli.GoFlag)
+	a := false
+	_, parseErr := parser.Parse(&cli.CommandConfig{
+		Args: []*cli.ArgConfig{{
+			Name:      "a",
+			ShortName: 'a',
+			Value:     &a,
+		}},
+	})
+
+	if parseErr == nil {
+		t.Fail()
+		t.Log(n + ": did not return error with invalid GNU argument")
+	}
+}
+
+func shouldParseWhenGoFlagArgsProvidedCorrectly(t *testing.T, n string) {
+	cmd := "testcmd"
+	testCases := map[string]struct {
+		args  []string
+		value func() []*cli.ArgConfig
+	}{
+		"single bool short option": {[]string{cmd, "-a"}, func() []*cli.ArgConfig {
+			val := false
+			return []*cli.ArgConfig{{Name: "a", Value: &val}}
+		}},
+		"single bool short option with value": {[]string{cmd, "-a=true"}, func() []*cli.ArgConfig {
+			val := false
+			return []*cli.ArgConfig{{Name: "a", Value: &val}}
+		}},
+		"single bool long option": {[]string{cmd, "--aaa"}, func() []*cli.ArgConfig {
+			val := false
+			return []*cli.ArgConfig{{Name: "aaa", Value: &val}}
+		}},
+		"single bool long option with value": {[]string{cmd, "--aaa=true"}, func() []*cli.ArgConfig {
+			val := false
+			return []*cli.ArgConfig{{Name: "aaa", Value: &val}}
+		}},
+		"single float64 option": {[]string{cmd, "--aaa", "1.0"}, func() []*cli.ArgConfig {
+			val := float64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"multiple float64 options": {[]string{cmd, "--aaa", "1.0", "--bbb", "2.0"}, func() []*cli.ArgConfig {
+			val := float64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+		"single int option": {[]string{cmd, "--aaa", "1"}, func() []*cli.ArgConfig {
+			val := 0
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"single int option with bool multiple args": {[]string{cmd, "--aaa", "--bbb", "1"}, func() []*cli.ArgConfig {
+			v1 := false
+			v2 := 0
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &v1}, {Name: "bbb", Required: true, Value: &v2}}
+		}},
+		"multiple int options": {[]string{cmd, "--aaa", "1", "--bbb", "2"}, func() []*cli.ArgConfig {
+			val := 0
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+		"single int64 option": {[]string{cmd, "--aaa", "1"}, func() []*cli.ArgConfig {
+			val := int64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"single int64 option with bool multiple args": {[]string{cmd, "--aaa", "--bbb", "1"}, func() []*cli.ArgConfig {
+			v1 := false
+			v2 := int64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &v1}, {Name: "bbb", Required: true, Value: &v2}}
+		}},
+		"multiple int64 options": {[]string{cmd, "--aaa", "1", "--bbb", "2"}, func() []*cli.ArgConfig {
+			val := int64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+		"single string option": {[]string{cmd, "--aaa", "foo"}, func() []*cli.ArgConfig {
+			val := "foobar"
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"single string option with bool multiple args": {[]string{cmd, "--aaa", "--bbb", "foo"}, func() []*cli.ArgConfig {
+			v1 := false
+			v2 := "foobar"
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &v1}, {Name: "bbb", Required: true, Value: &v2}}
+		}},
+		"multiple string options": {[]string{cmd, "--aaa", "foo", "--bbb", "bar"}, func() []*cli.ArgConfig {
+			val := "foobar"
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+		"single uint option": {[]string{cmd, "--aaa", "1"}, func() []*cli.ArgConfig {
+			val := uint(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"single uint option with bool multiple args": {[]string{cmd, "--aaa", "--bbb", "1"}, func() []*cli.ArgConfig {
+			v1 := false
+			v2 := uint(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &v1}, {Name: "bbb", Required: true, Value: &v2}}
+		}},
+		"multiple uint options": {[]string{cmd, "--aaa", "1", "--bbb", "2"}, func() []*cli.ArgConfig {
+			val := uint(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+		"single uint64 option": {[]string{cmd, "--aaa", "1"}, func() []*cli.ArgConfig {
+			val := uint64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}}
+		}},
+		"single uint64 option with bool multiple args": {[]string{cmd, "--aaa", "--bbb", "1"}, func() []*cli.ArgConfig {
+			v1 := false
+			v2 := uint64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &v1}, {Name: "bbb", Required: true, Value: &v2}}
+		}},
+		"multiple uint64 options": {[]string{cmd, "--aaa", "1", "--bbb", "2"}, func() []*cli.ArgConfig {
+			val := uint64(0)
+			return []*cli.ArgConfig{{Name: "aaa", Required: true, Value: &val}, {Name: "bbb", Required: true, Value: &val}}
+		}},
+	}
+
+	for name, test := range testCases {
+		os.Args = test.args
+		_, parseErr := cli.NewParser(cli.GoFlag).Parse(&cli.CommandConfig{Args: test.value()})
+
+		if parseErr != nil {
+			t.Fail()
+			t.Log(n + ": " + name)
+		}
 	}
 }
 
@@ -417,236 +545,343 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 }
 
 func shouldErrorWhenBoolOptHasOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a", "value"}
-	parser := cli.NewParser(cli.POSIX)
-	a := false
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]struct {
+		syntax cli.ArgSyntax
+		arg    string
+	}{
+		"GoFlag": {cli.GoFlag, "-a=value"},
+		"GNU":    {cli.GNU, "-a"},
+		"POSIX":  {cli.POSIX, "-a"},
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on POSIX bool option-argument")
+	for syntaxName, test := range testCases {
+		os.Args = []string{"testcmd", test.arg, "value"}
+		parser := cli.NewParser(test.syntax)
+		a := false
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on " + syntaxName + " bool option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredFloat64OptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := float64(1)
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n+": did not error on missing POSIX float64 option-argument", parseErr)
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := float64(1)
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " float64 option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredFloat64ListOptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := []float64{1}
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n+": did not error on missing POSIX float64 option-argument", parseErr)
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := []float64{1}
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " float64 option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredIntOptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := 1
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on missing POSIX int option-argument")
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := 1
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " int option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredIntListOptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := []int{1}
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on missing POSIX int list option-argument")
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := []int{1}
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " int list option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredInt64OptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := int64(1)
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on missing POSIX int64 option-argument")
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := int64(1)
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " int64 option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredInt64ListOptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := []int64{1}
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on missing POSIX int64 list option-argument")
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := []int64{1}
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " int64 list option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredStringOptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := "value"
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on missing POSIX string option-argument")
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := "value"
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " string option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredStringListOptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := []string{"value"}
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on missing POSIX string list option-argument")
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := []string{"value"}
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " string list option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredUintOptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := uint(1)
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on missing POSIX uint option-argument")
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := uint(1)
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " uint option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredUintListOptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := []uint{1}
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on missing POSIX uint list option-argument")
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := []uint{1}
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " uint list option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredUint64OptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := uint64(1)
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on missing POSIX uint64 option-argument")
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := uint64(1)
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " uint64 option-argument")
+		}
 	}
 }
 
 func shouldErrorWhenRequiredUint64ListOptHasNoOptArg(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := []uint64{1}
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string]cli.ArgSyntax{
+		"GoFlag": cli.GoFlag,
+		"GNU":    cli.GNU,
+		"POSIX":  cli.POSIX,
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on missing POSIX uint64 list option-argument")
+	for syntaxName, syntax := range testCases {
+		os.Args = []string{"testcmd", "-a"}
+		parser := cli.NewParser(syntax)
+		a := []uint64{1}
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      "a",
+				ShortName: 'a',
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on missing " + syntaxName + " uint64 list option-argument")
+		}
 	}
 }
 

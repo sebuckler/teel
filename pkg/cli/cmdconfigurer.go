@@ -37,7 +37,7 @@ func (c *commandConfigurer) AddBoolArg(p *bool, v bool, a *ArgDefinition) {
 }
 
 func (c *commandConfigurer) AddFloat64Arg(p *float64, v float64, a *ArgDefinition) {
-	c.args.float64Args = append(c.args.float64Args, &float64Arg {
+	c.args.float64Args = append(c.args.float64Args, &float64Arg{
 		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,
@@ -45,7 +45,7 @@ func (c *commandConfigurer) AddFloat64Arg(p *float64, v float64, a *ArgDefinitio
 }
 
 func (c *commandConfigurer) AddFloat64ListArg(p *[]float64, v []float64, a *ArgDefinition) {
-	c.args.float64ListArgs = append(c.args.float64ListArgs, &float64ListArg {
+	c.args.float64ListArgs = append(c.args.float64ListArgs, &float64ListArg{
 		commandArg:   c.newCommandArg(a),
 		defaultValue: v,
 		value:        p,

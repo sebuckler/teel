@@ -140,6 +140,10 @@ type ArgConfig struct {
 	Value      interface{}
 }
 
+type goFlagArgValue struct {
+	arg *parsedArg
+}
+
 type CommandConfig struct {
 	Args        []*ArgConfig
 	Context     context.Context

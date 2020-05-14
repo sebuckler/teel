@@ -2,6 +2,7 @@ package cli
 
 import (
 	"errors"
+	"flag"
 	"os"
 	"strconv"
 	"strings"
@@ -23,10 +24,6 @@ func (p *parser) Parse(c *CommandConfig) (*ParsedCommand, error) {
 	for _, cmd := range p.parsedCommands {
 		if argErr := p.parseArgs(cmd); argErr != nil {
 			return nil, argErr
-		}
-
-		if bindErr := p.bindArgs(cmd); bindErr != nil {
-			return nil, bindErr
 		}
 	}
 
@@ -90,15 +87,37 @@ func (p *parser) parseRootCmd(c *CommandConfig) *ParsedCommand {
 
 func (p *parser) parseArgs(c *ParsedCommand) error {
 	switch p.argSyntax {
+	case GoFlag:
+		return p.parseGoFlags()
 	case GNU:
 		return p.parseArgRules(c, getGnuRules(), getPosixArgParserContext)
-	case GoFlag:
-		panic("implement me")
 	case POSIX:
 		return p.parseArgRules(c, getPosixRules(), getPosixArgParserContext)
 	default:
 		return errors.New("unsupported argument parsing syntax")
 	}
+}
+
+func (p *parser) parseGoFlags() error {
+	for _, cmd := range p.parsedCommands {
+		flagSet := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
+
+		for _, argConfig := range cmd.argConfigs {
+			flagSet.Var(&goFlagArgValue{
+				arg: &parsedArg{
+					bindVal:  argConfig.Value,
+					name:     argConfig.Name,
+					required: argConfig.Required,
+				},
+			}, argConfig.Name, argConfig.UsageText)
+		}
+
+		if parseErr := flagSet.Parse(cmd.args); parseErr != nil {
+			return parseErr
+		}
+	}
+
+	return nil
 }
 
 func (p *parser) parseArgRules(c *ParsedCommand, r []argParserRule, i argParserInit) error {
@@ -135,7 +154,7 @@ func (p *parser) parseArgRules(c *ParsedCommand, r []argParserRule, i argParserI
 	c.parsedArgs = context.parsedArgs
 	c.Operands = context.operands
 
-	return nil
+	return p.bindArgs(c)
 }
 
 func getGnuRules() []argParserRule {
@@ -349,201 +368,32 @@ func (p *parser) bindArgs(c *ParsedCommand) error {
 	}
 
 	for _, arg := range c.parsedArgs {
-		switch arg.bindVal.(type) {
-		case *bool:
-			if len(arg.value) > 0 && arg.value[0] != "" {
-				return errors.New(
-					"invalid option-argument: '" + strings.Join(arg.value, ",") +
-						"' for option: " + arg.name,
-				)
-			}
-
-			*(arg.bindVal.(*bool)) = true
-		case *float64:
-			if err := isValidPosixNonlistArg(arg); err != nil {
-				return err
-			}
-
-			if len(arg.value) == 0 {
-				continue
-			}
-
-			argVal := arg.value[0]
-			float64Val, float64Err := strconv.ParseFloat(argVal, 64)
-
-			if float64Err != nil || argVal == "" {
-				return errors.New("invalid option-argument: '" + argVal + "' for option: " + arg.name)
-			}
-
-			*(arg.bindVal.(*float64)) = float64Val
-		case *int:
-			if err := isValidPosixNonlistArg(arg); err != nil {
-				return err
-			}
-
-			if len(arg.value) == 0 {
-				continue
-			}
-
-			argVal := arg.value[0]
-			intVal, intErr := strconv.Atoi(argVal)
-
-			if intErr != nil || argVal == "" {
-				return errors.New("invalid option-argument: '" + argVal + "' for option: " + arg.name)
-			}
-
-			*(arg.bindVal.(*int)) = intVal
-		case *[]int:
-			if listArgErr := isValidPosixListArg(arg); listArgErr != nil {
-				return listArgErr
-			}
-
-			var intVals []int
-
-			for _, argVal := range arg.value {
-				intVal, intErr := strconv.Atoi(argVal)
-
-				if intErr != nil || argVal == "" {
-					return errors.New("invalid option-argument: '" + argVal + "' for option: " + arg.name)
-				}
-
-				intVals = append(intVals, intVal)
-			}
-
-			*(arg.bindVal.(*[]int)) = intVals
-		case *int64:
-			if err := isValidPosixNonlistArg(arg); err != nil {
-				return err
-			}
-
-			if len(arg.value) == 0 {
-				continue
-			}
-
-			argVal := arg.value[0]
-			int64Val, int64Err := strconv.ParseInt(argVal, 10, 64)
-
-			if int64Err != nil || argVal == "" {
-				return errors.New("invalid option-argument: '" + argVal + "' for option: " + arg.name)
-			}
-
-			*(arg.bindVal.(*int64)) = int64Val
-		case *[]int64:
-			if listArgErr := isValidPosixListArg(arg); listArgErr != nil {
-				return listArgErr
-			}
-
-			var int64Vals []int64
-
-			for _, argVal := range arg.value {
-				int64Val, int64Err := strconv.ParseInt(argVal, 10, 64)
-
-				if int64Err != nil || argVal == "" {
-					return errors.New("invalid option-argument: '" + argVal + "' for option: " + arg.name)
-				}
-
-				int64Vals = append(int64Vals, int64Val)
-			}
-
-			*(arg.bindVal.(*[]int64)) = int64Vals
-		case *string:
-			if err := isValidPosixNonlistArg(arg); err != nil {
-				return err
-			}
-
-			if len(arg.value) == 0 {
-				continue
-			}
-
-			*(arg.bindVal.(*string)) = arg.value[0]
-		case *[]string:
-			if listArgErr := isValidPosixListArg(arg); listArgErr != nil {
-				return listArgErr
-			}
-
-			if len(arg.value) == 0 {
-				return errors.New("invalid option-argument: '" + strings.Join(arg.value, ",") +
-					"' for option: " + arg.name,
-				)
-			}
-
-			*(arg.bindVal.(*[]string)) = arg.value
-		case *uint:
-			if err := isValidPosixNonlistArg(arg); err != nil {
-				return err
-			}
-
-			if len(arg.value) == 0 {
-				continue
-			}
-
-			argVal := arg.value[0]
-			uintVal, uintErr := strconv.ParseUint(argVal, 10, 0)
-
-			if uintErr != nil || argVal == "" {
-				return errors.New("invalid option-argument: '" + argVal + "' for option: " + arg.name)
-			}
-
-			*(arg.bindVal.(*uint)) = uint(uintVal)
-		case *[]uint:
-			if listArgErr := isValidPosixListArg(arg); listArgErr != nil {
-				return listArgErr
-			}
-
-			var uintVals []uint
-
-			for _, argVal := range arg.value {
-				uintVal, uintErr := strconv.ParseUint(argVal, 10, 32)
-
-				if uintErr != nil || argVal == "" {
-					return errors.New("invalid option-argument: '" + argVal + "' for option: " + arg.name)
-				}
-
-				uintVals = append(uintVals, uint(uintVal))
-			}
-
-			*(arg.bindVal.(*[]uint)) = uintVals
-		case *uint64:
-			if err := isValidPosixNonlistArg(arg); err != nil {
-				return err
-			}
-
-			if len(arg.value) == 0 {
-				continue
-			}
-
-			argVal := arg.value[0]
-			uint64Val, uint64Err := strconv.ParseUint(argVal, 10, 64)
-
-			if uint64Err != nil || argVal == "" {
-				return errors.New("invalid option-argument: '" + argVal + "' for option: " + arg.name)
-			}
-
-			*(arg.bindVal.(*uint64)) = uint64Val
-		case *[]uint64:
-			if listArgErr := isValidPosixListArg(arg); listArgErr != nil {
-				return listArgErr
-			}
-
-			var uint64Vals []uint64
-
-			for _, argVal := range arg.value {
-				uint64Val, uint64Err := strconv.ParseUint(argVal, 10, 64)
-
-				if uint64Err != nil || argVal == "" {
-					return errors.New("invalid option-argument: '" + argVal + "' for option: " + arg.name)
-				}
-
-				uint64Vals = append(uint64Vals, uint64Val)
-			}
-
-			*(arg.bindVal.(*[]uint64)) = uint64Vals
-		default:
-			return errors.New("invalid option: " + arg.name)
+		if argErr := setArgValue(arg); argErr != nil {
+			return argErr
 		}
 	}
 
 	return nil
+}
+
+func (g *goFlagArgValue) IsBoolFlag() bool {
+	_, ok := g.arg.bindVal.(*bool)
+
+	return ok
+}
+
+func (g *goFlagArgValue) Set(v string) error {
+	if g.IsBoolFlag() && v == "true" {
+		g.arg.value = []string{""}
+	} else {
+		g.arg.value = []string{v}
+	}
+
+	return setArgValue(g.arg)
+}
+
+func (g *goFlagArgValue) String() string {
+	return ""
 }
 
 func isValidPosixListArg(a *parsedArg) error {
@@ -571,4 +421,201 @@ func isValidPosixNonlistArg(a *parsedArg) error {
 func isValidPosixOptionName(s string, r rune) bool {
 	return (s != "" && len(s) == 1 && ((s[0] >= 'a' && s[0] <= 'z') || (s[0] >= 'A' && s[0] <= 'Z')) && s[0] != 'W') ||
 		(((r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')) && r != 'W')
+}
+
+func setArgValue(p *parsedArg) error {
+	switch p.bindVal.(type) {
+	case *bool:
+		if len(p.value) > 0 && p.value[0] != "" {
+			return errors.New(
+				"invalid option-argument: '" + strings.Join(p.value, ",") +
+					"' for option: " + p.name,
+			)
+		}
+
+		*(p.bindVal.(*bool)) = true
+	case *float64:
+		if err := isValidPosixNonlistArg(p); err != nil {
+			return err
+		}
+
+		if len(p.value) == 0 {
+			return nil
+		}
+
+		argVal := p.value[0]
+		float64Val, float64Err := strconv.ParseFloat(argVal, 64)
+
+		if float64Err != nil || argVal == "" {
+			return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+		}
+
+		*(p.bindVal.(*float64)) = float64Val
+	case *int:
+		if err := isValidPosixNonlistArg(p); err != nil {
+			return err
+		}
+
+		if len(p.value) == 0 {
+			return nil
+		}
+
+		argVal := p.value[0]
+		intVal, intErr := strconv.Atoi(argVal)
+
+		if intErr != nil || argVal == "" {
+			return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+		}
+
+		*(p.bindVal.(*int)) = intVal
+	case *[]int:
+		if listArgErr := isValidPosixListArg(p); listArgErr != nil {
+			return listArgErr
+		}
+
+		var intVals []int
+
+		for _, argVal := range p.value {
+			intVal, intErr := strconv.Atoi(argVal)
+
+			if intErr != nil || argVal == "" {
+				return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+			}
+
+			intVals = append(intVals, intVal)
+		}
+
+		*(p.bindVal.(*[]int)) = intVals
+	case *int64:
+		if err := isValidPosixNonlistArg(p); err != nil {
+			return err
+		}
+
+		if len(p.value) == 0 {
+			return nil
+		}
+
+		argVal := p.value[0]
+		int64Val, int64Err := strconv.ParseInt(argVal, 10, 64)
+
+		if int64Err != nil || argVal == "" {
+			return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+		}
+
+		*(p.bindVal.(*int64)) = int64Val
+	case *[]int64:
+		if listArgErr := isValidPosixListArg(p); listArgErr != nil {
+			return listArgErr
+		}
+
+		var int64Vals []int64
+
+		for _, argVal := range p.value {
+			int64Val, int64Err := strconv.ParseInt(argVal, 10, 64)
+
+			if int64Err != nil || argVal == "" {
+				return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+			}
+
+			int64Vals = append(int64Vals, int64Val)
+		}
+
+		*(p.bindVal.(*[]int64)) = int64Vals
+	case *string:
+		if err := isValidPosixNonlistArg(p); err != nil {
+			return err
+		}
+
+		if len(p.value) == 0 {
+			return nil
+		}
+
+		*(p.bindVal.(*string)) = p.value[0]
+	case *[]string:
+		if listArgErr := isValidPosixListArg(p); listArgErr != nil {
+			return listArgErr
+		}
+
+		if len(p.value) == 0 {
+			return errors.New("invalid option-argument: '" + strings.Join(p.value, ",") +
+				"' for option: " + p.name,
+			)
+		}
+
+		*(p.bindVal.(*[]string)) = p.value
+	case *uint:
+		if err := isValidPosixNonlistArg(p); err != nil {
+			return err
+		}
+
+		if len(p.value) == 0 {
+			return nil
+		}
+
+		argVal := p.value[0]
+		uintVal, uintErr := strconv.ParseUint(argVal, 10, 0)
+
+		if uintErr != nil || argVal == "" {
+			return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+		}
+
+		*(p.bindVal.(*uint)) = uint(uintVal)
+	case *[]uint:
+		if listArgErr := isValidPosixListArg(p); listArgErr != nil {
+			return listArgErr
+		}
+
+		var uintVals []uint
+
+		for _, argVal := range p.value {
+			uintVal, uintErr := strconv.ParseUint(argVal, 10, 32)
+
+			if uintErr != nil || argVal == "" {
+				return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+			}
+
+			uintVals = append(uintVals, uint(uintVal))
+		}
+
+		*(p.bindVal.(*[]uint)) = uintVals
+	case *uint64:
+		if err := isValidPosixNonlistArg(p); err != nil {
+			return err
+		}
+
+		if len(p.value) == 0 {
+			return nil
+		}
+
+		argVal := p.value[0]
+		uint64Val, uint64Err := strconv.ParseUint(argVal, 10, 64)
+
+		if uint64Err != nil || argVal == "" {
+			return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+		}
+
+		*(p.bindVal.(*uint64)) = uint64Val
+	case *[]uint64:
+		if listArgErr := isValidPosixListArg(p); listArgErr != nil {
+			return listArgErr
+		}
+
+		var uint64Vals []uint64
+
+		for _, argVal := range p.value {
+			uint64Val, uint64Err := strconv.ParseUint(argVal, 10, 64)
+
+			if uint64Err != nil || argVal == "" {
+				return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+			}
+
+			uint64Vals = append(uint64Vals, uint64Val)
+		}
+
+		*(p.bindVal.(*[]uint64)) = uint64Vals
+	default:
+		return errors.New("invalid option: " + p.name)
+	}
+
+	return nil
 }
