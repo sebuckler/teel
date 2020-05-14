@@ -14,22 +14,23 @@ func TestCommandConfigurer_Configure(t *testing.T) {
 
 func getConfigurerTestCases() map[string]func(t *testing.T, n string) {
 	return map[string]func(t *testing.T, n string){
-		"should have only command defined":               shouldHaveOnlyCommandDefined,
-		"should have command with only bool arg":         shouldHaveCommandWithOnlyBoolArg,
-		"should have command with only float64 arg":      shouldHaveCommandWithOnlyFloat64Arg,
-		"should have command with only float64 list arg": shouldHaveCommandWithOnlyFloat64ListArg,
-		"should have command with only int arg":          shouldHaveCommandWithOnlyIntArg,
-		"should have command with only int list arg":     shouldHaveCommandWithOnlyIntListArg,
-		"should have command with only int64 arg":        shouldHaveCommandWithOnlyInt64Arg,
-		"should have command with only int64 list arg":   shouldHaveCommandWithOnlyInt64ListArg,
-		"should have command with only string arg":       shouldHaveCommandWithOnlyStringArg,
-		"should have command with only string list arg":  shouldHaveCommandWithOnlyStringListArg,
-		"should have command with only uint arg":         shouldHaveCommandWithOnlyUintArg,
-		"should have command with only uint list arg":    shouldHaveCommandWithOnlyUintListArg,
-		"should have command with only uint64 arg":       shouldHaveCommandWithOnlyUint64Arg,
-		"should have command with only uint64 list arg":  shouldHaveCommandWithOnlyUint64ListArg,
-		"should have command with run function":          shouldHaveCommandWithRunFunction,
-		"should have subcommands":                        shouldHaveSubcommands,
+		"should have only command defined":                       shouldHaveOnlyCommandDefined,
+		"should have command with only bool arg":                 shouldHaveCommandWithOnlyBoolArg,
+		"should have command with only float64 arg":              shouldHaveCommandWithOnlyFloat64Arg,
+		"should have command with only float64 list arg":         shouldHaveCommandWithOnlyFloat64ListArg,
+		"should have command with only int arg":                  shouldHaveCommandWithOnlyIntArg,
+		"should have command with only int list arg":             shouldHaveCommandWithOnlyIntListArg,
+		"should have command with only int64 arg":                shouldHaveCommandWithOnlyInt64Arg,
+		"should have command with only int64 list arg":           shouldHaveCommandWithOnlyInt64ListArg,
+		"should have command with only string arg":               shouldHaveCommandWithOnlyStringArg,
+		"should have command with only string list arg":          shouldHaveCommandWithOnlyStringListArg,
+		"should have command with only uint arg":                 shouldHaveCommandWithOnlyUintArg,
+		"should have command with only uint list arg":            shouldHaveCommandWithOnlyUintListArg,
+		"should have command with only uint64 arg":               shouldHaveCommandWithOnlyUint64Arg,
+		"should have command with only uint64 list arg":          shouldHaveCommandWithOnlyUint64ListArg,
+		"should have command with run function":                  shouldHaveCommandWithRunFunction,
+		"should have subcommands":                                shouldHaveSubcommands,
+		"should have empty args when no arg definition provided": shouldHaveEmptyArgsWhenNoArgDefinitionProvided,
 	}
 }
 
@@ -274,5 +275,17 @@ func shouldHaveSubcommands(t *testing.T, n string) {
 			t.Fail()
 			t.Log(n + ": subcommand names incorrectly configured")
 		}
+	}
+}
+
+func shouldHaveEmptyArgsWhenNoArgDefinitionProvided(t *testing.T, n string) {
+	ctx := context.Background()
+	cmd := cli.NewCommand("foo", ctx)
+	cmd.AddBoolArg(nil, false, nil)
+	config := cmd.Configure()
+
+	if len(config.Args) > 1 || config.Args[0].Name != "" {
+		t.Fail()
+		t.Log(n + ": args were not empty")
 	}
 }
