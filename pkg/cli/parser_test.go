@@ -15,6 +15,7 @@ func TestParser_Parse(t *testing.T) {
 func getParserTestCases() map[string]func(t *testing.T, n string) {
 	return map[string]func(t *testing.T, n string){
 		"should error when unsupported parse syntax used":            shouldErrorWhenUnsupportedParseSyntaxUsed,
+		"should parse subcommands":                                   shouldParseSubcommands,
 		"should error when arg passed with no args configured":       shouldErrorWhenArgPassedWithNoArgsConfigured,
 		"should error when repeated arg is not repeatable":           shouldErrorWhenRepeatedArgIsNotRepeatable,
 		"should error when GoFlag first arg is invalid format":       shouldErrorWhenGoFlagFirstArgIsInvalidFormat,
@@ -51,6 +52,24 @@ func shouldErrorWhenUnsupportedParseSyntaxUsed(t *testing.T, n string) {
 	if parseErr == nil {
 		t.Fail()
 		t.Log(n + ": did not error on unsupported parse syntax")
+	}
+}
+
+func shouldParseSubcommands(t *testing.T, n string) {
+	os.Args = []string{"testcmd", "foo", "bar"}
+	parser := cli.NewParser(cli.POSIX)
+	parsedCmd, parseErr := parser.Parse(&cli.CommandConfig{
+		Subcommands: []*cli.CommandConfig{{
+			Name: "foo",
+			Subcommands: []*cli.CommandConfig{{
+				Name: "bar",
+			}}},
+		},
+	})
+
+	if parseErr != nil || len(parsedCmd.Subcommands) == 0 || len(parsedCmd.Subcommands[0].Subcommands) == 0 {
+		t.Fail()
+		t.Log(n + ": did not parse subcommands properly")
 	}
 }
 

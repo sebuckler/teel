@@ -19,7 +19,7 @@ func (p *parser) Parse(c *CommandConfig) (*ParsedCommand, error) {
 	args := os.Args[1:]
 	rootCmd := p.parseRootCmd(c)
 	p.parsedCommands = append(p.parsedCommands, rootCmd)
-	p.mapSubcommands(args, c, rootCmd)
+	p.parseSubcommands(args, c, rootCmd)
 
 	for _, cmd := range p.parsedCommands {
 		if argErr := p.parseArgs(cmd); argErr != nil {
@@ -30,9 +30,9 @@ func (p *parser) Parse(c *CommandConfig) (*ParsedCommand, error) {
 	return rootCmd, nil
 }
 
-func (p *parser) mapSubcommands(a []string, c *CommandConfig, l *ParsedCommand) {
+func (p *parser) parseSubcommands(a []string, c *CommandConfig, l *ParsedCommand) bool {
 	if len(a) == 0 || l == nil {
-		return
+		return true
 	}
 
 	arg := a[0]
@@ -57,7 +57,7 @@ func (p *parser) mapSubcommands(a []string, c *CommandConfig, l *ParsedCommand) 
 		}
 
 		if l.Name == cmd.Name && len(cmd.Subcommands) > 0 {
-			p.mapSubcommands(a, cmd, l)
+			argMapped = p.parseSubcommands(a, cmd, l)
 		}
 	}
 
@@ -70,10 +70,10 @@ func (p *parser) mapSubcommands(a []string, c *CommandConfig, l *ParsedCommand) 
 	}
 
 	if len(a) == 1 {
-		return
+		return true
 	}
 
-	p.mapSubcommands(a[1:], c, lastParsedCmd)
+	return p.parseSubcommands(a[1:], c, lastParsedCmd)
 }
 
 func (p *parser) parseRootCmd(c *CommandConfig) *ParsedCommand {
@@ -169,7 +169,7 @@ func getGnuRules() []argParserRule {
 	}
 }
 
-func checkGnuOptionValidity(a string, i int, c *argParserContext) (bool, error) {
+func checkGnuOptionValidity(a string, i int, _ *argParserContext) (bool, error) {
 	if i == 0 && !strings.HasPrefix(a, "-") && !strings.HasPrefix(a, "--") {
 		return false, errors.New("invalid GNU option: " + a)
 	}
@@ -177,7 +177,7 @@ func checkGnuOptionValidity(a string, i int, c *argParserContext) (bool, error) 
 	return false, nil
 }
 
-func checkGnuArgIsLongOption(a string, i int, c *argParserContext) (bool, error) {
+func checkGnuArgIsLongOption(a string, _ int, c *argParserContext) (bool, error) {
 	if !strings.HasPrefix(a, "--") || len(a) < 3 {
 		return false, nil
 	}
@@ -224,7 +224,7 @@ func checkGnuArgIsLongOption(a string, i int, c *argParserContext) (bool, error)
 	return true, nil
 }
 
-func checkGnuArgIsLongOptionArgument(a string, i int, c *argParserContext) (bool, error) {
+func checkGnuArgIsLongOptionArgument(a string, _ int, c *argParserContext) (bool, error) {
 	if c.lastParsedArg == nil {
 		return false, nil
 	}
@@ -272,7 +272,7 @@ func getPosixRules() []argParserRule {
 	}
 }
 
-func checkPosixOptionValidity(a string, i int, c *argParserContext) (bool, error) {
+func checkPosixOptionValidity(a string, i int, _ *argParserContext) (bool, error) {
 	if i == 0 && !strings.HasPrefix(a, "-") {
 		return false, errors.New("invalid POSIX option: " + a)
 	}
@@ -290,7 +290,7 @@ func checkPosixArgsTerminated(a string, i int, c *argParserContext) (bool, error
 	return false, nil
 }
 
-func checkPosixArgIsOperand(a string, i int, c *argParserContext) (bool, error) {
+func checkPosixArgIsOperand(a string, _ int, c *argParserContext) (bool, error) {
 	if c.terminated {
 		c.operands = append(c.operands, a)
 
@@ -300,7 +300,7 @@ func checkPosixArgIsOperand(a string, i int, c *argParserContext) (bool, error) 
 	return false, nil
 }
 
-func checkPosixArgIsOption(a string, i int, c *argParserContext) (bool, error) {
+func checkPosixArgIsOption(a string, _ int, c *argParserContext) (bool, error) {
 	if !strings.HasPrefix(a, "-") || len(a) < 2 || a == "--" {
 		return false, nil
 	}
@@ -336,7 +336,7 @@ func checkPosixArgIsOption(a string, i int, c *argParserContext) (bool, error) {
 	return true, nil
 }
 
-func checkPosixArgIsOptionArgument(a string, i int, c *argParserContext) (bool, error) {
+func checkPosixArgIsOptionArgument(a string, _ int, c *argParserContext) (bool, error) {
 	if c.lastParsedArg != nil {
 		for _, pArg := range c.parsedArgs {
 			if c.lastParsedArg == pArg {

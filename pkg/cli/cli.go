@@ -37,67 +37,67 @@ type commandArg struct {
 
 type boolArg struct {
 	*commandArg
-	value        *bool
+	value *bool
 }
 
 type float64Arg struct {
 	*commandArg
-	value        *float64
+	value *float64
 }
 
 type float64ListArg struct {
 	*commandArg
-	value        *[]float64
+	value *[]float64
 }
 
 type intArg struct {
 	*commandArg
-	value        *int
+	value *int
 }
 
 type intListArg struct {
 	*commandArg
-	value        *[]int
+	value *[]int
 }
 
 type int64Arg struct {
 	*commandArg
-	value        *int64
+	value *int64
 }
 
 type int64ListArg struct {
 	*commandArg
-	value        *[]int64
+	value *[]int64
 }
 
 type stringArg struct {
 	*commandArg
-	value        *string
+	value *string
 }
 
 type stringListArg struct {
 	*commandArg
-	value        *[]string
+	value *[]string
 }
 
 type uintArg struct {
 	*commandArg
-	value        *uint
+	value *uint
 }
 
 type uintListArg struct {
 	*commandArg
-	value        *[]uint
+	value *[]uint
 }
 
 type uint64Arg struct {
 	*commandArg
-	value        *uint64
+	value *uint64
 }
 
 type uint64ListArg struct {
 	*commandArg
-	value        *[]uint64
+	value *[]uint64
 }
 
 type commandArgs struct {
