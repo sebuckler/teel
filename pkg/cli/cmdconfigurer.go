@@ -28,106 +28,93 @@ func (c *commandConfigurer) AddSubcommand(cmd CommandConfigurer) {
 	c.subcommands = append(c.subcommands, cmd)
 }
 
-func (c *commandConfigurer) AddBoolArg(p *bool, v bool, a *ArgDefinition) {
+func (c *commandConfigurer) AddBoolArg(p *bool, a *ArgDefinition) {
 	c.args.boolArgs = append(c.args.boolArgs, &boolArg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddFloat64Arg(p *float64, v float64, a *ArgDefinition) {
+func (c *commandConfigurer) AddFloat64Arg(p *float64, a *ArgDefinition) {
 	c.args.float64Args = append(c.args.float64Args, &float64Arg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddFloat64ListArg(p *[]float64, v []float64, a *ArgDefinition) {
+func (c *commandConfigurer) AddFloat64ListArg(p *[]float64, a *ArgDefinition) {
 	c.args.float64ListArgs = append(c.args.float64ListArgs, &float64ListArg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddIntArg(p *int, v int, a *ArgDefinition) {
+func (c *commandConfigurer) AddIntArg(p *int, a *ArgDefinition) {
 	c.args.intArgs = append(c.args.intArgs, &intArg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddIntListArg(p *[]int, v []int, a *ArgDefinition) {
+func (c *commandConfigurer) AddIntListArg(p *[]int, a *ArgDefinition) {
 	c.args.intListArgs = append(c.args.intListArgs, &intListArg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddInt64Arg(p *int64, v int64, a *ArgDefinition) {
+func (c *commandConfigurer) AddInt64Arg(p *int64, a *ArgDefinition) {
 	c.args.int64Args = append(c.args.int64Args, &int64Arg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddInt64ListArg(p *[]int64, v []int64, a *ArgDefinition) {
+func (c *commandConfigurer) AddInt64ListArg(p *[]int64, a *ArgDefinition) {
 	c.args.int64ListArgs = append(c.args.int64ListArgs, &int64ListArg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddStringArg(p *string, v string, a *ArgDefinition) {
+func (c *commandConfigurer) AddStringArg(p *string, a *ArgDefinition) {
 	c.args.stringArgs = append(c.args.stringArgs, &stringArg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddStringListArg(p *[]string, v []string, a *ArgDefinition) {
+func (c *commandConfigurer) AddStringListArg(p *[]string, a *ArgDefinition) {
 	c.args.stringListArgs = append(c.args.stringListArgs, &stringListArg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddUintArg(p *uint, v uint, a *ArgDefinition) {
+func (c *commandConfigurer) AddUintArg(p *uint, a *ArgDefinition) {
 	c.args.uintArgs = append(c.args.uintArgs, &uintArg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddUintListArg(p *[]uint, v []uint, a *ArgDefinition) {
+func (c *commandConfigurer) AddUintListArg(p *[]uint, a *ArgDefinition) {
 	c.args.uintListArgs = append(c.args.uintListArgs, &uintListArg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddUint64Arg(p *uint64, v uint64, a *ArgDefinition) {
+func (c *commandConfigurer) AddUint64Arg(p *uint64, a *ArgDefinition) {
 	c.args.uint64Args = append(c.args.uint64Args, &uint64Arg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
 
-func (c *commandConfigurer) AddUint64ListArg(p *[]uint64, v []uint64, a *ArgDefinition) {
+func (c *commandConfigurer) AddUint64ListArg(p *[]uint64, a *ArgDefinition) {
 	c.args.uint64ListArgs = append(c.args.uint64ListArgs, &uint64ListArg{
 		commandArg:   c.newCommandArg(a),
-		defaultValue: v,
 		value:        p,
 	})
 }
@@ -180,7 +167,7 @@ func (c *commandConfigurer) configureBoolArgs() []*ArgConfig {
 	var boolArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.boolArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		boolArgConfigs = append(boolArgConfigs, argConfig)
 	}
 
@@ -191,7 +178,7 @@ func (c *commandConfigurer) configureFloat64Args() []*ArgConfig {
 	var float64ArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.float64Args {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		float64ArgConfigs = append(float64ArgConfigs, argConfig)
 	}
 
@@ -202,7 +189,7 @@ func (c *commandConfigurer) configureFloat64ListArgs() []*ArgConfig {
 	var float64ListArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.float64ListArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		float64ListArgConfigs = append(float64ListArgConfigs, argConfig)
 	}
 
@@ -213,7 +200,7 @@ func (c *commandConfigurer) configureIntArgs() []*ArgConfig {
 	var intArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.intArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		intArgConfigs = append(intArgConfigs, argConfig)
 	}
 
@@ -224,7 +211,7 @@ func (c *commandConfigurer) configureIntListArgs() []*ArgConfig {
 	var intListArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.intListArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		intListArgConfigs = append(intListArgConfigs, argConfig)
 	}
 
@@ -235,7 +222,7 @@ func (c *commandConfigurer) configureInt64Args() []*ArgConfig {
 	var int64ArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.int64Args {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		int64ArgConfigs = append(int64ArgConfigs, argConfig)
 	}
 
@@ -246,7 +233,7 @@ func (c *commandConfigurer) configureInt64ListArgs() []*ArgConfig {
 	var int64ListArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.int64ListArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		int64ListArgConfigs = append(int64ListArgConfigs, argConfig)
 	}
 
@@ -257,7 +244,7 @@ func (c *commandConfigurer) configureStringArgs() []*ArgConfig {
 	var stringArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.stringArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		stringArgConfigs = append(stringArgConfigs, argConfig)
 	}
 
@@ -268,7 +255,7 @@ func (c *commandConfigurer) configureStringListArgs() []*ArgConfig {
 	var stringListArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.stringListArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		stringListArgConfigs = append(stringListArgConfigs, argConfig)
 	}
 
@@ -279,7 +266,7 @@ func (c *commandConfigurer) configureUintArgs() []*ArgConfig {
 	var uintArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.uintArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		uintArgConfigs = append(uintArgConfigs, argConfig)
 	}
 
@@ -290,7 +277,7 @@ func (c *commandConfigurer) configureUintListArgs() []*ArgConfig {
 	var uintListArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.uintListArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		uintListArgConfigs = append(uintListArgConfigs, argConfig)
 	}
 
@@ -301,7 +288,7 @@ func (c *commandConfigurer) configureUint64Args() []*ArgConfig {
 	var uint64ArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.uint64Args {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		uint64ArgConfigs = append(uint64ArgConfigs, argConfig)
 	}
 
@@ -312,72 +299,14 @@ func (c *commandConfigurer) configureUint64ListArgs() []*ArgConfig {
 	var uint64ListArgConfigs []*ArgConfig
 
 	for _, arg := range c.args.uint64ListArgs {
-		argConfig := c.configureCommandArgType(arg.commandArg, arg.value, arg.defaultValue)
+		argConfig := c.configureCommandArgType(arg.commandArg, arg.value)
 		uint64ListArgConfigs = append(uint64ListArgConfigs, argConfig)
 	}
 
 	return uint64ListArgConfigs
 }
 
-func (c *commandConfigurer) configureCommandArgType(a *commandArg, v interface{}, d interface{}) *ArgConfig {
-	switch v.(type) {
-	case *bool:
-		if val, ok := v.(*bool); ok && val != nil {
-			*val = d.(bool)
-			v = val
-		}
-	case *int:
-		if val, ok := v.(*int); ok && val != nil {
-			*val = d.(int)
-			v = val
-		}
-	case *[]int:
-		if val, ok := v.(*[]int); ok && val != nil {
-			*val = d.([]int)
-			v = val
-		}
-	case *int64:
-		if val, ok := v.(*int64); ok && val != nil {
-			*val = d.(int64)
-			v = val
-		}
-	case *[]int64:
-		if val, ok := v.(*[]int64); ok && val != nil {
-			*val = d.([]int64)
-			v = val
-		}
-	case *string:
-		if val, ok := v.(*string); ok && val != nil {
-			*val = d.(string)
-			v = val
-		}
-	case *[]string:
-		if val, ok := v.(*[]string); ok && val != nil {
-			*val = d.([]string)
-			v = val
-		}
-	case *uint:
-		if val, ok := v.(*uint); ok && val != nil {
-			*val = d.(uint)
-			v = val
-		}
-	case *[]uint:
-		if val, ok := v.(*[]uint); ok && val != nil {
-			*val = d.([]uint)
-			v = val
-		}
-	case *uint64:
-		if val, ok := v.(*uint64); ok && val != nil {
-			*val = d.(uint64)
-			v = val
-		}
-	case *[]uint64:
-		if val, ok := v.(*[]uint64); ok && val != nil {
-			*val = d.([]uint64)
-			v = val
-		}
-	}
-
+func (c *commandConfigurer) configureCommandArgType(a *commandArg, v interface{}) *ArgConfig {
 	return &ArgConfig{
 		Name:       a.name,
 		Repeatable: a.repeatable,

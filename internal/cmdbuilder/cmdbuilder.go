@@ -28,11 +28,11 @@ func (c *commandBuilder) Build() cli.CommandConfigurer {
 	var a bool
 	var b string
 	rootCmd := cli.NewCommand("", context.Background())
-	rootCmd.AddBoolArg(&a, false, &cli.ArgDefinition{
+	rootCmd.AddBoolArg(&a, &cli.ArgDefinition{
 		Name:      "a",
 		ShortName: 'a',
 	})
-	rootCmd.AddStringArg(&b, "second", &cli.ArgDefinition{
+	rootCmd.AddStringArg(&b, &cli.ArgDefinition{
 		Name:      "b",
 		ShortName: 'b',
 	})
@@ -42,7 +42,7 @@ func (c *commandBuilder) Build() cli.CommandConfigurer {
 	})
 	subCmd := cli.NewCommand("subby", context.Background())
 	file := "filename"
-	subCmd.AddStringArg(&file, "default", &cli.ArgDefinition{
+	subCmd.AddStringArg(&file, &cli.ArgDefinition{
 		Name:      "file",
 		ShortName: 'f',
 	})

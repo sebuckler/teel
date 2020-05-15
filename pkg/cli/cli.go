@@ -37,79 +37,66 @@ type commandArg struct {
 
 type boolArg struct {
 	*commandArg
-	defaultValue bool
 	value        *bool
 }
 
 type float64Arg struct {
 	*commandArg
-	defaultValue float64
 	value        *float64
 }
 
 type float64ListArg struct {
 	*commandArg
-	defaultValue []float64
 	value        *[]float64
 }
 
 type intArg struct {
 	*commandArg
-	defaultValue int
 	value        *int
 }
 
 type intListArg struct {
 	*commandArg
-	defaultValue []int
 	value        *[]int
 }
 
 type int64Arg struct {
 	*commandArg
-	defaultValue int64
 	value        *int64
 }
 
 type int64ListArg struct {
 	*commandArg
-	defaultValue []int64
 	value        *[]int64
 }
 
 type stringArg struct {
 	*commandArg
-	defaultValue string
 	value        *string
 }
 
 type stringListArg struct {
 	*commandArg
-	defaultValue []string
 	value        *[]string
 }
 
 type uintArg struct {
 	*commandArg
-	defaultValue uint
 	value        *uint
 }
 
 type uintListArg struct {
 	*commandArg
-	defaultValue []uint
 	value        *[]uint
 }
 
 type uint64Arg struct {
 	*commandArg
-	defaultValue uint64
 	value        *uint64
 }
 
 type uint64ListArg struct {
 	*commandArg
-	defaultValue []uint64
 	value        *[]uint64
 }
 
@@ -187,19 +174,19 @@ type argParserRule func(a string, i int, c *argParserContext) (bool, error)
 type argParserInit func(a []string) *argParserContext
 
 type ArgAdder interface {
-	AddBoolArg(p *bool, v bool, a *ArgDefinition)
-	AddFloat64Arg(p *float64, v float64, a *ArgDefinition)
-	AddFloat64ListArg(p *[]float64, v []float64, a *ArgDefinition)
-	AddIntArg(p *int, v int, a *ArgDefinition)
-	AddIntListArg(p *[]int, v []int, a *ArgDefinition)
-	AddInt64Arg(p *int64, v int64, a *ArgDefinition)
-	AddInt64ListArg(p *[]int64, v []int64, a *ArgDefinition)
-	AddStringArg(p *string, v string, a *ArgDefinition)
-	AddStringListArg(p *[]string, v []string, a *ArgDefinition)
-	AddUintArg(p *uint, v uint, a *ArgDefinition)
-	AddUintListArg(p *[]uint, v []uint, a *ArgDefinition)
-	AddUint64Arg(p *uint64, v uint64, a *ArgDefinition)
-	AddUint64ListArg(p *[]uint64, v []uint64, a *ArgDefinition)
+	AddBoolArg(p *bool, a *ArgDefinition)
+	AddFloat64Arg(p *float64, a *ArgDefinition)
+	AddFloat64ListArg(p *[]float64, a *ArgDefinition)
+	AddIntArg(p *int, a *ArgDefinition)
+	AddIntListArg(p *[]int, a *ArgDefinition)
+	AddInt64Arg(p *int64, a *ArgDefinition)
+	AddInt64ListArg(p *[]int64, a *ArgDefinition)
+	AddStringArg(p *string, a *ArgDefinition)
+	AddStringListArg(p *[]string, a *ArgDefinition)
+	AddUintArg(p *uint, a *ArgDefinition)
+	AddUintListArg(p *[]uint, a *ArgDefinition)
+	AddUint64Arg(p *uint64, a *ArgDefinition)
+	AddUint64ListArg(p *[]uint64, a *ArgDefinition)
 }
 
 type CommandConfigurer interface {
