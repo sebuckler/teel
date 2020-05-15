@@ -451,6 +451,28 @@ func setArgValue(p *parsedArg) error {
 		}
 
 		*(p.bindVal.(*float64)) = float64Val
+	case *[]float64:
+		if listArgErr := isValidPosixListArg(p); listArgErr != nil {
+			return listArgErr
+		}
+
+		var float64Vals []float64
+
+		for _, argVal := range p.value {
+			csv := strings.Split(argVal, ",")
+
+			for _, val := range csv {
+				float64Val, float64Err := strconv.ParseFloat(strings.TrimSpace(val), 64)
+
+				if float64Err != nil || val == "" {
+					return errors.New("invalid option-argument: '" + val + "' for option: " + p.name)
+				}
+
+				float64Vals = append(float64Vals, float64Val)
+			}
+		}
+
+		*(p.bindVal.(*[]float64)) = float64Vals
 	case *int:
 		if err := isValidPosixNonlistArg(p); err != nil {
 			return err
@@ -476,13 +498,17 @@ func setArgValue(p *parsedArg) error {
 		var intVals []int
 
 		for _, argVal := range p.value {
-			intVal, intErr := strconv.Atoi(argVal)
+			csv := strings.Split(argVal, ",")
 
-			if intErr != nil || argVal == "" {
-				return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+			for _, val := range csv {
+				intVal, intErr := strconv.Atoi(strings.TrimSpace(val))
+
+				if intErr != nil || val == "" {
+					return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+				}
+
+				intVals = append(intVals, intVal)
 			}
-
-			intVals = append(intVals, intVal)
 		}
 
 		*(p.bindVal.(*[]int)) = intVals
@@ -511,13 +537,17 @@ func setArgValue(p *parsedArg) error {
 		var int64Vals []int64
 
 		for _, argVal := range p.value {
-			int64Val, int64Err := strconv.ParseInt(argVal, 10, 64)
+			csv := strings.Split(argVal, ",")
 
-			if int64Err != nil || argVal == "" {
-				return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+			for _, val := range csv {
+				int64Val, int64Err := strconv.ParseInt(strings.TrimSpace(val), 10, 64)
+
+				if int64Err != nil || val == "" {
+					return errors.New("invalid option-argument: '" + val + "' for option: " + p.name)
+				}
+
+				int64Vals = append(int64Vals, int64Val)
 			}
-
-			int64Vals = append(int64Vals, int64Val)
 		}
 
 		*(p.bindVal.(*[]int64)) = int64Vals
