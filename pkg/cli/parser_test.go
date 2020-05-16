@@ -3,6 +3,7 @@ package cli_test
 import (
 	"github.com/sebuckler/teel/pkg/cli"
 	"os"
+	"strconv"
 	"testing"
 )
 
@@ -574,15 +575,11 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		"bool options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa", "--bbb"},
-					&[]string{"a"}:          {cmd, "-a"},
-					&[]string{"a", "b"}:     {cmd, "-ab"},
-					&[]string{"a", "b"}:     {cmd, "-a", "-b"},
-					&[]string{"a"}:          {cmd, "-a=true"},
-					&[]string{"aaa"}:        {cmd, "--aaa=true"},
-					&[]string{"a", "b"}:     {cmd, "-a=true", "-b=true"},
-					&[]string{"a", "b"}:     {cmd, "-ab=true"},
+					&[]string{"aaa"}:                        {cmd, "-aaa"},
+					&[]string{"aaa", "bbb"}:                 {cmd, "-aaa", "-bbb"},
+					&[]string{"a", "b", "c", "d", "e", "f"}: {cmd, "-a=1", "-b=0", "-c=t", "-d=f", "-e=T", "-f=F"},
+					&[]string{"a", "b", "c"}:                {cmd, "-a=true", "-b=false", "-c=TRUE"},
+					&[]string{"a", "b", "c"}:                {cmd, "-a=FALSE", "-b=True", "-c=False"},
 				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa"},
@@ -610,8 +607,9 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: &val})
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -620,14 +618,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		"float64 options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1.0"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1.0", "--bbb=2.0"},
-					&[]string{"a"}:          {cmd, "-a=1.0"},
-					&[]string{"a", "b"}:     {cmd, "-a=1.0", "-b=2.0"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1.0"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1.0", "-bbb=2.0"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "--aaa", "1.0"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa", "1.0", "--bbb", "2.0"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1.0"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1.0", "--bbb=2.0"},
 					&[]string{"a"}:          {cmd, "-a", "1.0"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1.0", "-b", "2.0"},
 				},
@@ -644,15 +640,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := float64(index)
+					for i, name := range *argNames {
+						val := float64(i)
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						vals[val] = bindVal
+						vals[val+1] = bindVal
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -673,14 +670,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1.0,2.0"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1.0,2.0", "--bbb=3.0,4.0"},
-					&[]string{"a"}:          {cmd, "-a=1.0,2.0"},
-					&[]string{"a", "b"}:     {cmd, "-a=1.0,2.0", "-b=3.0,4.0"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1.0,2.0"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1.0,2.0", "-bbb=3.0,4.0"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "-aaa", "1.0,2.0"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa", "1.0,2.0", "-bbb", "3.0,4.0"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1.0,2.0"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1.0,2.0", "--bbb=3.0,4.0"},
 					&[]string{"a"}:          {cmd, "-a", "1.0,2.0"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1.0,2.0", "-b", "3.0,4.0"},
 				},
@@ -697,15 +692,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := []float64{float64(index)}
+					for i, name := range *argNames {
+						val := []float64{float64(i)}
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						results = append(results, result{val, bindVal})
+						results = append(results, result{[]float64{float64((i * 2) + 1), float64((i * 2) + 2)}, bindVal})
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -724,14 +720,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		"int options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
-					&[]string{"a"}:          {cmd, "-a=1"},
-					&[]string{"a", "b"}:     {cmd, "-a=1", "-b=2"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1", "-bbb=2"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "--aaa", "1"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa", "1", "--bbb", "2"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
 					&[]string{"a"}:          {cmd, "-a", "1"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1", "-b", "2"},
 				},
@@ -748,15 +742,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := index
+					for i, name := range *argNames {
+						val := i
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						vals[val] = bindVal
+						vals[val+1] = bindVal
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -777,14 +772,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
-					&[]string{"a"}:          {cmd, "-a=1,2"},
-					&[]string{"a", "b"}:     {cmd, "-a=1,2", "-b=3,4"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1,2"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1,2", "-bbb=3,4"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "-aaa", "1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa", "1,2", "-bbb", "3,4"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
 					&[]string{"a"}:          {cmd, "-a", "1,2"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1,2", "-b", "3,4"},
 				},
@@ -801,15 +794,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := []int{index}
+					for i, name := range *argNames {
+						val := []int{i}
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						results = append(results, result{val, bindVal})
+						results = append(results, result{[]int{(i * 2) + 1, (i * 2) + 2}, bindVal})
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -828,14 +822,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		"int64 options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
-					&[]string{"a"}:          {cmd, "-a=1"},
-					&[]string{"a", "b"}:     {cmd, "-a=1", "-b=2"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1", "-bbb=2"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "--aaa", "1"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa", "1", "--bbb", "2"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
 					&[]string{"a"}:          {cmd, "-a", "1"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1", "-b", "2"},
 				},
@@ -852,15 +844,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := int64(index)
+					for i, name := range *argNames {
+						val := int64(i)
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						vals[val] = bindVal
+						vals[val+1] = bindVal
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -881,14 +874,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
-					&[]string{"a"}:          {cmd, "-a=1,2"},
-					&[]string{"a", "b"}:     {cmd, "-a=1,2", "-b=3,4"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1,2"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1,2", "-bbb=3,4"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "-aaa", "1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa", "1,2", "-bbb", "3,4"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
 					&[]string{"a"}:          {cmd, "-a", "1,2"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1,2", "-b", "3,4"},
 				},
@@ -905,15 +896,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := []int64{int64(index)}
+					for i, name := range *argNames {
+						val := []int64{int64(i)}
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						results = append(results, result{val, bindVal})
+						results = append(results, result{[]int64{int64((i * 2) + 1), int64((i * 2) + 2)}, bindVal})
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -932,14 +924,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		"string options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
-					&[]string{"a"}:          {cmd, "-a=1"},
-					&[]string{"a", "b"}:     {cmd, "-a=1", "-b=2"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1", "-bbb=2"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "--aaa", "1"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa", "1", "--bbb", "2"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
 					&[]string{"a"}:          {cmd, "-a", "1"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1", "-b", "2"},
 				},
@@ -956,15 +946,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := string(index + 1)
+					for i, name := range *argNames {
+						val := strconv.Itoa(i + 1)
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						vals[val] = bindVal
+						vals[*bindVal] = bindVal
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -985,14 +976,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
-					&[]string{"a"}:          {cmd, "-a=1,2"},
-					&[]string{"a", "b"}:     {cmd, "-a=1,2", "-b=3,4"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1,2"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1,2", "-bbb=3,4"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "-aaa", "1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa", "1,2", "-bbb", "3,4"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
 					&[]string{"a"}:          {cmd, "-a", "1,2"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1,2", "-b", "3,4"},
 				},
@@ -1009,15 +998,19 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := []string{string(index + 1)}
+					for i, name := range *argNames {
+						val := []string{strconv.Itoa(i + 1)}
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						results = append(results, result{val, bindVal})
+						results = append(
+							results,
+							result{[]string{strconv.Itoa((i * 2) + 1), strconv.Itoa((i * 2) + 2)}, bindVal},
+						)
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -1036,14 +1029,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		"uint options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
-					&[]string{"a"}:          {cmd, "-a=1"},
-					&[]string{"a", "b"}:     {cmd, "-a=1", "-b=2"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1", "-bbb=2"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "--aaa", "1"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa", "1", "--bbb", "2"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
 					&[]string{"a"}:          {cmd, "-a", "1"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1", "-b", "2"},
 				},
@@ -1060,15 +1051,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := uint(index)
+					for i, name := range *argNames {
+						val := uint(i)
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						vals[val] = bindVal
+						vals[val+1] = bindVal
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -1089,14 +1081,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
-					&[]string{"a"}:          {cmd, "-a=1,2"},
-					&[]string{"a", "b"}:     {cmd, "-a=1,2", "-b=3,4"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1,2"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1,2", "-bbb=3,4"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "-aaa", "1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa", "1,2", "-bbb", "3,4"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
 					&[]string{"a"}:          {cmd, "-a", "1,2"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1,2", "-b", "3,4"},
 				},
@@ -1113,15 +1103,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := []uint{uint(index)}
+					for i, name := range *argNames {
+						val := []uint{uint(i)}
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						results = append(results, result{val, bindVal})
+						results = append(results, result{[]uint{uint((i * 2) + 1), uint((i * 2) + 2)}, bindVal})
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -1140,14 +1131,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		"uint64 options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
-					&[]string{"a"}:          {cmd, "-a=1"},
-					&[]string{"a", "b"}:     {cmd, "-a=1", "-b=2"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1", "-bbb=2"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "--aaa", "1"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa", "1", "--bbb", "2"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
 					&[]string{"a"}:          {cmd, "-a", "1"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1", "-b", "2"},
 				},
@@ -1164,15 +1153,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := uint64(index)
+					for i, name := range *argNames {
+						val := uint64(i)
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						vals[val] = bindVal
+						vals[val+1] = bindVal
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -1193,14 +1183,12 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
 				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
-					&[]string{"a"}:          {cmd, "-a=1,2"},
-					&[]string{"a", "b"}:     {cmd, "-a=1,2", "-b=3,4"},
+					&[]string{"aaa"}:        {cmd, "-aaa=1,2"},
+					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1,2", "--bbb=3,4"},
 				},
 				cli.GNU: {
-					&[]string{"aaa"}:        {cmd, "-aaa", "1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa", "1,2", "-bbb", "3,4"},
+					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
+					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
 					&[]string{"a"}:          {cmd, "-a", "1,2"},
 					&[]string{"a", "b"}:     {cmd, "-a", "1,2", "-b", "3,4"},
 				},
@@ -1217,15 +1205,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 					os.Args = args
 					var configs []*cli.ArgConfig
 
-					for index, name := range *argNames {
-						val := []uint64{uint64(index)}
+					for i, name := range *argNames {
+						val := []uint64{uint64(i)}
 						bindVal := &val
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
-						results = append(results, result{val, bindVal})
+						results = append(results, result{[]uint64{uint64((i * 2) + 1), uint64((i * 2) + 2)}, bindVal})
 					}
 
-					_, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs})
-					errs = append(errs, parseErr)
+					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
+						errs = append(errs, parseErr)
+					}
 				}
 			}
 
@@ -1246,7 +1235,7 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 	for name, runtTest := range testCases {
 		assertTest := runtTest()
 
-		if assertTest() {
+		if !assertTest() {
 			t.Fail()
 			t.Log(n + ": " + name)
 		}

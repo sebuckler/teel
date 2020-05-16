@@ -17,7 +17,7 @@ func NewParser(a ArgSyntax) Parser {
 
 func (p *parser) Parse(c *CommandConfig) (*ParsedCommand, error) {
 	args := os.Args[1:]
-	rootCmd := p.parseRootCmd(c)
+	rootCmd := parseRootCmd(c)
 	p.parsedCommands = append(p.parsedCommands, rootCmd)
 	p.parseSubcommands(args, c, rootCmd)
 
@@ -76,23 +76,14 @@ func (p *parser) parseSubcommands(a []string, c *CommandConfig, l *ParsedCommand
 	return p.parseSubcommands(a[1:], c, lastParsedCmd)
 }
 
-func (p *parser) parseRootCmd(c *CommandConfig) *ParsedCommand {
-	return &ParsedCommand{
-		args:       []string{},
-		argConfigs: c.Args,
-		Context:    c.Context,
-		Run:        c.Run,
-	}
-}
-
 func (p *parser) parseArgs(c *ParsedCommand) error {
 	switch p.argSyntax {
 	case GoFlag:
 		return p.parseGoFlags()
 	case GNU:
-		return p.parseArgRules(c, getGnuRules(), getPosixArgParserContext)
+		return parseArgRules(c, getGnuRules(), getPosixArgParserContext)
 	case POSIX:
-		return p.parseArgRules(c, getPosixRules(), getPosixArgParserContext)
+		return parseArgRules(c, getPosixRules(), getPosixArgParserContext)
 	default:
 		return errors.New("unsupported argument parsing syntax")
 	}
@@ -120,7 +111,48 @@ func (p *parser) parseGoFlags() error {
 	return nil
 }
 
-func (p *parser) parseArgRules(c *ParsedCommand, r []argParserRule, i argParserInit) error {
+func (g *goFlagArgValue) IsBoolFlag() bool {
+	_, ok := g.arg.bindVal.(*bool)
+
+	return ok
+}
+
+func (g *goFlagArgValue) Set(v string) error {
+	if g.IsBoolFlag() && g.isValidBoolVal(v) {
+		g.arg.value = []string{""}
+	} else {
+		g.arg.value = []string{v}
+	}
+
+	return setArgValue(g.arg)
+}
+
+func (g *goFlagArgValue) String() string {
+	return ""
+}
+
+func (g *goFlagArgValue) isValidBoolVal(v string) bool {
+	boolVals := []string{"1", "0", "t", "f", "T", "F", "true", "false", "TRUE", "FALSE", "True", "False"}
+
+	for _, val := range boolVals {
+		if val == v {
+			return true
+		}
+	}
+
+	return false
+}
+
+func parseRootCmd(c *CommandConfig) *ParsedCommand {
+	return &ParsedCommand{
+		args:       []string{},
+		argConfigs: c.Args,
+		Context:    c.Context,
+		Run:        c.Run,
+	}
+}
+
+func parseArgRules(c *ParsedCommand, r []argParserRule, i argParserInit) error {
 	if len(c.args) == 0 {
 		return nil
 	}
@@ -154,7 +186,21 @@ func (p *parser) parseArgRules(c *ParsedCommand, r []argParserRule, i argParserI
 	c.parsedArgs = context.parsedArgs
 	c.Operands = context.operands
 
-	return p.bindArgs(c)
+	return bindArgs(c)
+}
+
+func bindArgs(c *ParsedCommand) error {
+	if len(c.parsedArgs) == 0 {
+		return nil
+	}
+
+	for _, arg := range c.parsedArgs {
+		if argErr := setArgValue(arg); argErr != nil {
+			return argErr
+		}
+	}
+
+	return nil
 }
 
 func getGnuRules() []argParserRule {
@@ -230,11 +276,11 @@ func checkGnuArgIsLongOptionArgument(a string, _ int, c *argParserContext) (bool
 	}
 
 	for _, pArg := range c.parsedArgs {
-		if c.lastParsedArg != pArg {
+		if c.lastParsedArg != pArg || !strings.HasPrefix(pArg.rawArg, "--") {
 			continue
 		}
 
-		if strings.HasPrefix(pArg.rawArg, "--") && !pArg.required && len(pArg.value) == 0 {
+		if !pArg.required && len(pArg.value) == 0 {
 			return false, errors.New(
 				"optional GNU option-argument '" + a + "' must be provided with option '--" + pArg.name + "' separated by '='",
 			)
@@ -360,40 +406,6 @@ func updateArgParserContext(a *ArgConfig, o string, r string, c *argParserContex
 	}
 	c.lastParsedArg = pArg
 	c.parsedArgs = append(c.parsedArgs, pArg)
-}
-
-func (p *parser) bindArgs(c *ParsedCommand) error {
-	if len(c.parsedArgs) == 0 {
-		return nil
-	}
-
-	for _, arg := range c.parsedArgs {
-		if argErr := setArgValue(arg); argErr != nil {
-			return argErr
-		}
-	}
-
-	return nil
-}
-
-func (g *goFlagArgValue) IsBoolFlag() bool {
-	_, ok := g.arg.bindVal.(*bool)
-
-	return ok
-}
-
-func (g *goFlagArgValue) Set(v string) error {
-	if g.IsBoolFlag() && v == "true" {
-		g.arg.value = []string{""}
-	} else {
-		g.arg.value = []string{v}
-	}
-
-	return setArgValue(g.arg)
-}
-
-func (g *goFlagArgValue) String() string {
-	return ""
 }
 
 func isValidPosixListArg(a *parsedArg) error {
@@ -566,13 +578,17 @@ func setArgValue(p *parsedArg) error {
 			return listArgErr
 		}
 
-		if len(p.value) == 0 {
-			return errors.New("invalid option-argument: '" + strings.Join(p.value, ",") +
-				"' for option: " + p.name,
-			)
+		var stringVals []string
+
+		for _, argVal := range p.value {
+			csv := strings.Split(argVal, ",")
+
+			for _, val := range csv {
+				stringVals = append(stringVals, val)
+			}
 		}
 
-		*(p.bindVal.(*[]string)) = p.value
+		*(p.bindVal.(*[]string)) = stringVals
 	case *uint:
 		if err := isValidPosixNonlistArg(p); err != nil {
 			return err
@@ -598,13 +614,17 @@ func setArgValue(p *parsedArg) error {
 		var uintVals []uint
 
 		for _, argVal := range p.value {
-			uintVal, uintErr := strconv.ParseUint(argVal, 10, 32)
+			csv := strings.Split(argVal, ",")
 
-			if uintErr != nil || argVal == "" {
-				return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+			for _, val := range csv {
+				uintVal, uintErr := strconv.ParseUint(strings.TrimSpace(val), 10, 0)
+
+				if uintErr != nil || val == "" {
+					return errors.New("invalid option-argument: '" + val + "' for option: " + p.name)
+				}
+
+				uintVals = append(uintVals, uint(uintVal))
 			}
-
-			uintVals = append(uintVals, uint(uintVal))
 		}
 
 		*(p.bindVal.(*[]uint)) = uintVals
@@ -633,13 +653,17 @@ func setArgValue(p *parsedArg) error {
 		var uint64Vals []uint64
 
 		for _, argVal := range p.value {
-			uint64Val, uint64Err := strconv.ParseUint(argVal, 10, 64)
+			csv := strings.Split(argVal, ",")
 
-			if uint64Err != nil || argVal == "" {
-				return errors.New("invalid option-argument: '" + argVal + "' for option: " + p.name)
+			for _, val := range csv {
+				uint64Val, uint64Err := strconv.ParseUint(strings.TrimSpace(val), 10, 64)
+
+				if uint64Err != nil || val == "" {
+					return errors.New("invalid option-argument: '" + val + "' for option: " + p.name)
+				}
+
+				uint64Vals = append(uint64Vals, uint64Val)
 			}
-
-			uint64Vals = append(uint64Vals, uint64Val)
 		}
 
 		*(p.bindVal.(*[]uint64)) = uint64Vals
