@@ -85,21 +85,29 @@ func shouldErrorWhenArgPassedWithNoArgsConfigured(t *testing.T, n string) {
 }
 
 func shouldErrorWhenRepeatedArgIsNotRepeatable(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a", "-a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := true
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:       "a",
-			Repeatable: false,
-			ShortName:  'a',
-			Value:      &a,
-		}},
-	})
+	testCases := map[cli.ArgSyntax][]string{
+		cli.GoFlag: {"testcmd", "-aaa", "-aaa"},
+		cli.GNU:    {"testcmd", "--aaa", "--aaa"},
+		cli.POSIX:  {"testcmd", "-a", "-a"},
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on non-repeatable arg being repeated")
+	for syntax, args := range testCases {
+		os.Args = args
+		parser := cli.NewParser(syntax)
+		a := true
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:       strings.ReplaceAll(args[1], "-", ""),
+				Repeatable: false,
+				ShortName:  rune(strings.ReplaceAll(args[1], "-", "")[0]),
+				Value:      &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on non-repeatable arg being repeated")
+		}
 	}
 }
 
@@ -141,7 +149,7 @@ func shouldErrorWhenGnuFirstArgIsInvalidFormat(t *testing.T, n string) {
 
 func shouldErrorWhenConfiguredGnuArgNameIsInvalid(t *testing.T, n string) {
 	testCases := map[string][]string{
-		"invalid characters":      {"testcmd", "--="},
+		"invalid characters":          {"testcmd", "--="},
 		"invalid multi-part name '='": {"testcmd", "--foo-="},
 		"invalid multi-part name '`'": {"testcmd", "--foo-`"},
 	}

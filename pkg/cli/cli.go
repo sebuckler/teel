@@ -128,7 +128,9 @@ type ArgConfig struct {
 }
 
 type goFlagArgValue struct {
-	arg *parsedArg
+	arg        *parsedArg
+	parsedArgs []*parsedArg
+	repeatable bool
 }
 
 type CommandConfig struct {

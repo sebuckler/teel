@@ -92,6 +92,7 @@ func (p *parser) parseArgs(c *ParsedCommand) error {
 func (p *parser) parseGoFlags() error {
 	for _, cmd := range p.parsedCommands {
 		flagSet := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
+		var parsedArgs []*parsedArg
 
 		for _, argConfig := range cmd.argConfigs {
 			flagSet.Var(&goFlagArgValue{
@@ -100,6 +101,8 @@ func (p *parser) parseGoFlags() error {
 					name:     argConfig.Name,
 					required: argConfig.Required,
 				},
+				parsedArgs: parsedArgs,
+				repeatable: argConfig.Repeatable,
 			}, argConfig.Name, argConfig.UsageText)
 		}
 
@@ -118,11 +121,19 @@ func (g *goFlagArgValue) IsBoolFlag() bool {
 }
 
 func (g *goFlagArgValue) Set(v string) error {
+	for _, pArg := range g.parsedArgs {
+		if g.arg.name == pArg.name && !g.repeatable {
+			return errors.New("non-repeatable GoFlag option: -" + g.arg.name)
+		}
+	}
+
 	if g.IsBoolFlag() && g.isValidBoolVal(v) {
 		g.arg.value = []string{""}
 	} else {
 		g.arg.value = []string{v}
 	}
+
+	g.parsedArgs = append(g.parsedArgs, g.arg)
 
 	return setArgValue(g.arg)
 }
