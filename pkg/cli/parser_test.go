@@ -40,6 +40,7 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 		"should error when required uint64 opt has no opt-arg":       shouldErrorWhenRequiredUint64OptHasNoOptArg,
 		"should error when required uint64 list opt has no opt-arg":  shouldErrorWhenRequiredUint64ListOptHasNoOptArg,
 		"should error when unsupported arg type used":                shouldErrorWhenUnsupportedArgTypeUsed,
+		"should parse when operands provided correctly":              shouldParseWhenOperandsProvidedCorrectly,
 		"should parse when args provided correctly":                  shouldParseWhenPosixArgsProvidedCorrectly,
 	}
 }
@@ -583,6 +584,31 @@ func shouldErrorWhenUnsupportedArgTypeUsed(t *testing.T, n string) {
 	if parseErr == nil {
 		t.Fail()
 		t.Log(n + ": did not error on unsupported arg type")
+	}
+}
+
+func shouldParseWhenOperandsProvidedCorrectly(t *testing.T, n string) {
+	testCases := map[cli.ArgSyntax][]string{
+		cli.GNU: {"testcmd", "--aaa", "--", "+foo"},
+		cli.POSIX: {"testcmd", "-a", "--", "+foo"},
+	}
+
+	for syntax, args := range testCases {
+		os.Args = args
+		parser := cli.NewParser(syntax)
+		a := false
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name: strings.ReplaceAll(args[1], "-", ""),
+				ShortName: rune(strings.ReplaceAll(args[1], "-", "")[0]),
+				Value: &a,
+			}},
+		})
+
+		if parseErr != nil {
+			t.Fail()
+			t.Log(n + ": failed to parse operands")
+		}
 	}
 }
 
