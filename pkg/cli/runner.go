@@ -2,10 +2,9 @@ package cli
 
 import "errors"
 
-func NewRunner(v string, e ErrorBehavior) Runner {
+func NewRunner(v string) Runner {
 	return &runner{
-		errBehavior: e,
-		version:     v,
+		version: v,
 	}
 }
 

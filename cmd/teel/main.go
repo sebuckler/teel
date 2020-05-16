@@ -23,16 +23,15 @@ func main() {
 		siteScaffolder := scaffolder.New(directives.NewConfig())
 		cmdBuilder := cmdbuilder.New(fileLogger, siteScaffolder)
 		parser := cli.NewParser(cli.GNU)
-		runner := cli.NewRunner(version, cli.ExitOnError)
+		runner := cli.NewRunner(version)
 		cmdExecutor := executor.New(cmdBuilder, fileLogger, parser, runner)
-		execErr := cmdExecutor.Execute()
 
-		if execErr != nil {
+		signalHandler.Handle(func(os.Signal) { _ = f.Flush() })
+
+		if execErr := cmdExecutor.Execute(); execErr != nil {
 			fmt.Printf("Error: %v\n", execErr)
 			os.Exit(1)
 		}
-
-		signalHandler.Handle(func(os.Signal) { _ = f.Flush() })
 	})
 
 	if streamErr != nil {

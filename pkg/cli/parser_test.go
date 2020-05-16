@@ -18,6 +18,7 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 	return map[string]func(t *testing.T, n string){
 		"should error when unsupported parse syntax used":            shouldErrorWhenUnsupportedParseSyntaxUsed,
 		"should parse subcommands":                                   shouldParseSubcommands,
+		"should add help args if not configured":                     shouldAddHelpArgsIfNotConfigured,
 		"should error when arg passed with no args configured":       shouldErrorWhenArgPassedWithNoArgsConfigured,
 		"should error when repeated arg is not repeatable":           shouldErrorWhenRepeatedArgIsNotRepeatable,
 		"should error when GoFlag first arg is invalid format":       shouldErrorWhenGoFlagFirstArgIsInvalidFormat,
@@ -48,9 +49,9 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 func shouldErrorWhenUnsupportedParseSyntaxUsed(t *testing.T, n string) {
 	os.Args = []string{"testcmd"}
 	parser := cli.NewParser(99)
-	_, parseErr := parser.Parse(&cli.CommandConfig{})
+	_, err := parser.Parse(&cli.CommandConfig{})
 
-	if parseErr == nil {
+	if err == nil {
 		t.Fail()
 		t.Log(n + ": did not error on unsupported parse syntax")
 	}
@@ -59,7 +60,7 @@ func shouldErrorWhenUnsupportedParseSyntaxUsed(t *testing.T, n string) {
 func shouldParseSubcommands(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "foo", "bar"}
 	parser := cli.NewParser(cli.POSIX)
-	parsedCmd, parseErr := parser.Parse(&cli.CommandConfig{
+	parsedCmd, err := parser.Parse(&cli.CommandConfig{
 		Subcommands: []*cli.CommandConfig{{
 			Name: "foo",
 			Subcommands: []*cli.CommandConfig{{
@@ -68,18 +69,46 @@ func shouldParseSubcommands(t *testing.T, n string) {
 		},
 	})
 
-	if parseErr != nil || len(parsedCmd.Subcommands) == 0 || len(parsedCmd.Subcommands[0].Subcommands) == 0 {
+	if err != nil || len(parsedCmd.Subcommands) == 0 || len(parsedCmd.Subcommands[0].Subcommands) == 0 {
 		t.Fail()
 		t.Log(n + ": did not parse subcommands properly")
+	}
+}
+
+func shouldAddHelpArgsIfNotConfigured(t *testing.T, n string) {
+	testCases := map[string]map[cli.ArgSyntax][][]string{
+		"GoFlag help added": {cli.GoFlag: {{"testcmd", "-h"}, {"testcmd", "-help"}}},
+		"GNU help added":    {cli.GNU: {{"testcmd", "--help"}, {"test", "-h"}}},
+		"POSIX help added":  {cli.POSIX: {{"test", "-h"}}},
+	}
+
+	for name, test := range testCases {
+		for syntax, argSet := range test {
+			for _, args := range argSet {
+				os.Args = args
+				parser := cli.NewParser(syntax)
+				config := &cli.CommandConfig{}
+				_, err := parser.Parse(config)
+
+				if syntax == cli.GoFlag && err != nil && strings.Contains(err.Error(), "flag: help requested") {
+					err = nil
+				}
+
+				if err != nil {
+					t.Fail()
+					t.Log(n + ": failed to parse help args: " + name)
+				}
+			}
+		}
 	}
 }
 
 func shouldErrorWhenArgPassedWithNoArgsConfigured(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "a"}
 	parser := cli.NewParser(cli.POSIX)
-	_, parseErr := parser.Parse(&cli.CommandConfig{})
+	_, err := parser.Parse(&cli.CommandConfig{})
 
-	if parseErr == nil {
+	if err == nil {
 		t.Fail()
 		t.Log(n + ": did not error when args passed in with no args configured")
 	}
@@ -96,7 +125,7 @@ func shouldErrorWhenRepeatedArgIsNotRepeatable(t *testing.T, n string) {
 		os.Args = args
 		parser := cli.NewParser(syntax)
 		a := true
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:       strings.ReplaceAll(args[1], "-", ""),
 				Repeatable: false,
@@ -105,7 +134,7 @@ func shouldErrorWhenRepeatedArgIsNotRepeatable(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on non-repeatable arg being repeated")
 		}
@@ -116,7 +145,7 @@ func shouldErrorWhenGoFlagFirstArgIsInvalidFormat(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "-a=value"}
 	parser := cli.NewParser(cli.GoFlag)
 	a := false
-	_, parseErr := parser.Parse(&cli.CommandConfig{
+	_, err := parser.Parse(&cli.CommandConfig{
 		Args: []*cli.ArgConfig{{
 			Name:      "a",
 			ShortName: 'a',
@@ -124,7 +153,7 @@ func shouldErrorWhenGoFlagFirstArgIsInvalidFormat(t *testing.T, n string) {
 		}},
 	})
 
-	if parseErr == nil {
+	if err == nil {
 		t.Fail()
 		t.Log(n + ": did not return error with invalid GNU argument")
 	}
@@ -134,7 +163,7 @@ func shouldErrorWhenGnuFirstArgIsInvalidFormat(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "a"}
 	parser := cli.NewParser(cli.GNU)
 	a := false
-	_, parseErr := parser.Parse(&cli.CommandConfig{
+	_, err := parser.Parse(&cli.CommandConfig{
 		Args: []*cli.ArgConfig{{
 			Name:      "a",
 			ShortName: 'a',
@@ -142,7 +171,7 @@ func shouldErrorWhenGnuFirstArgIsInvalidFormat(t *testing.T, n string) {
 		}},
 	})
 
-	if parseErr == nil {
+	if err == nil {
 		t.Fail()
 		t.Log(n + ": did not return error with invalid GNU argument")
 	}
@@ -159,7 +188,7 @@ func shouldErrorWhenConfiguredGnuArgNameIsInvalid(t *testing.T, n string) {
 		os.Args = args
 		parser := cli.NewParser(cli.GNU)
 		a := false
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      strings.TrimPrefix(args[1], "--"),
 				ShortName: rune(strings.TrimPrefix(args[1], "--")[0]),
@@ -167,7 +196,7 @@ func shouldErrorWhenConfiguredGnuArgNameIsInvalid(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on incorrectly configured GNU arg name: " + name)
 		}
@@ -178,7 +207,7 @@ func shouldErrorWhenGnuOptionalOptArgIsInvalidFormat(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "--alphabet", "abc"}
 	parser := cli.NewParser(cli.GNU)
 	a := "xyz"
-	_, parseErr := parser.Parse(&cli.CommandConfig{
+	_, err := parser.Parse(&cli.CommandConfig{
 		Args: []*cli.ArgConfig{{
 			Name:      "alphabet",
 			ShortName: 'a',
@@ -186,7 +215,7 @@ func shouldErrorWhenGnuOptionalOptArgIsInvalidFormat(t *testing.T, n string) {
 		}},
 	})
 
-	if parseErr == nil {
+	if err == nil {
 		t.Fail()
 		t.Log(n + ": did not error on GNU optional option-argument not separated by '='")
 	}
@@ -196,7 +225,7 @@ func shouldErrorWhenPosixFirstArgIsInvalidFormat(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "a"}
 	parser := cli.NewParser(cli.POSIX)
 	a := false
-	_, parseErr := parser.Parse(&cli.CommandConfig{
+	_, err := parser.Parse(&cli.CommandConfig{
 		Args: []*cli.ArgConfig{{
 			Name:      "a",
 			ShortName: 'a',
@@ -204,7 +233,7 @@ func shouldErrorWhenPosixFirstArgIsInvalidFormat(t *testing.T, n string) {
 		}},
 	})
 
-	if parseErr == nil {
+	if err == nil {
 		t.Fail()
 		t.Log(n + ": did not return error with invalid POSIX argument")
 	}
@@ -214,7 +243,7 @@ func shouldErrorWhenConfiguredPosixArgNameIsInvalid(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "-="}
 	parser := cli.NewParser(cli.POSIX)
 	a := false
-	_, parseErr := parser.Parse(&cli.CommandConfig{
+	_, err := parser.Parse(&cli.CommandConfig{
 		Args: []*cli.ArgConfig{{
 			Name:      "=",
 			ShortName: '=',
@@ -222,7 +251,7 @@ func shouldErrorWhenConfiguredPosixArgNameIsInvalid(t *testing.T, n string) {
 		}},
 	})
 
-	if parseErr == nil {
+	if err == nil {
 		t.Fail()
 		t.Log(n + ": did not error on incorrectly configured POSIX arg name")
 	}
@@ -242,7 +271,7 @@ func shouldErrorWhenBoolOptHasOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", test.arg, "value"}
 		parser := cli.NewParser(test.syntax)
 		a := false
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -250,7 +279,7 @@ func shouldErrorWhenBoolOptHasOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on " + syntaxName + " bool option-argument")
 		}
@@ -268,7 +297,7 @@ func shouldErrorWhenRequiredFloat64OptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := float64(1)
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -276,7 +305,7 @@ func shouldErrorWhenRequiredFloat64OptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " float64 option-argument")
 		}
@@ -294,7 +323,7 @@ func shouldErrorWhenRequiredFloat64ListOptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := []float64{1}
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -302,7 +331,7 @@ func shouldErrorWhenRequiredFloat64ListOptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " float64 option-argument")
 		}
@@ -320,7 +349,7 @@ func shouldErrorWhenRequiredIntOptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := 1
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -328,7 +357,7 @@ func shouldErrorWhenRequiredIntOptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " int option-argument")
 		}
@@ -346,7 +375,7 @@ func shouldErrorWhenRequiredIntListOptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := []int{1}
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -354,7 +383,7 @@ func shouldErrorWhenRequiredIntListOptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " int list option-argument")
 		}
@@ -372,7 +401,7 @@ func shouldErrorWhenRequiredInt64OptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := int64(1)
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -380,7 +409,7 @@ func shouldErrorWhenRequiredInt64OptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " int64 option-argument")
 		}
@@ -398,7 +427,7 @@ func shouldErrorWhenRequiredInt64ListOptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := []int64{1}
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -406,7 +435,7 @@ func shouldErrorWhenRequiredInt64ListOptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " int64 list option-argument")
 		}
@@ -424,7 +453,7 @@ func shouldErrorWhenRequiredStringOptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := "value"
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -432,7 +461,7 @@ func shouldErrorWhenRequiredStringOptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " string option-argument")
 		}
@@ -450,7 +479,7 @@ func shouldErrorWhenRequiredStringListOptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := []string{"value"}
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -458,7 +487,7 @@ func shouldErrorWhenRequiredStringListOptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " string list option-argument")
 		}
@@ -476,7 +505,7 @@ func shouldErrorWhenRequiredUintOptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := uint(1)
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -484,7 +513,7 @@ func shouldErrorWhenRequiredUintOptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " uint option-argument")
 		}
@@ -502,7 +531,7 @@ func shouldErrorWhenRequiredUintListOptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := []uint{1}
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -510,7 +539,7 @@ func shouldErrorWhenRequiredUintListOptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " uint list option-argument")
 		}
@@ -528,7 +557,7 @@ func shouldErrorWhenRequiredUint64OptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := uint64(1)
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -536,7 +565,7 @@ func shouldErrorWhenRequiredUint64OptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " uint64 option-argument")
 		}
@@ -554,7 +583,7 @@ func shouldErrorWhenRequiredUint64ListOptHasNoOptArg(t *testing.T, n string) {
 		os.Args = []string{"testcmd", "-a"}
 		parser := cli.NewParser(syntax)
 		a := []uint64{1}
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
 				Name:      "a",
 				ShortName: 'a',
@@ -562,7 +591,7 @@ func shouldErrorWhenRequiredUint64ListOptHasNoOptArg(t *testing.T, n string) {
 			}},
 		})
 
-		if parseErr == nil {
+		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " uint64 list option-argument")
 		}
@@ -573,7 +602,7 @@ func shouldErrorWhenUnsupportedArgTypeUsed(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "-a", "1"}
 	parser := cli.NewParser(cli.POSIX)
 	a := byte(1)
-	_, parseErr := parser.Parse(&cli.CommandConfig{
+	_, err := parser.Parse(&cli.CommandConfig{
 		Args: []*cli.ArgConfig{{
 			Name:      "a",
 			ShortName: 'a',
@@ -581,7 +610,7 @@ func shouldErrorWhenUnsupportedArgTypeUsed(t *testing.T, n string) {
 		}},
 	})
 
-	if parseErr == nil {
+	if err == nil {
 		t.Fail()
 		t.Log(n + ": did not error on unsupported arg type")
 	}
@@ -589,7 +618,7 @@ func shouldErrorWhenUnsupportedArgTypeUsed(t *testing.T, n string) {
 
 func shouldParseWhenOperandsProvidedCorrectly(t *testing.T, n string) {
 	testCases := map[cli.ArgSyntax][]string{
-		cli.GNU: {"testcmd", "--aaa", "--", "+foo"},
+		cli.GNU:   {"testcmd", "--aaa", "--", "+foo"},
 		cli.POSIX: {"testcmd", "-a", "--", "+foo"},
 	}
 
@@ -597,15 +626,15 @@ func shouldParseWhenOperandsProvidedCorrectly(t *testing.T, n string) {
 		os.Args = args
 		parser := cli.NewParser(syntax)
 		a := false
-		_, parseErr := parser.Parse(&cli.CommandConfig{
+		_, err := parser.Parse(&cli.CommandConfig{
 			Args: []*cli.ArgConfig{{
-				Name: strings.ReplaceAll(args[1], "-", ""),
+				Name:      strings.ReplaceAll(args[1], "-", ""),
 				ShortName: rune(strings.ReplaceAll(args[1], "-", "")[0]),
-				Value: &a,
+				Value:     &a,
 			}},
 		})
 
-		if parseErr != nil {
+		if err != nil {
 			t.Fail()
 			t.Log(n + ": failed to parse operands")
 		}
@@ -650,8 +679,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: &val})
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -690,8 +719,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						vals[val+1] = bindVal
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -742,8 +771,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						results = append(results, result{[]float64{float64((i * 2) + 1), float64((i * 2) + 2)}, bindVal})
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -792,8 +821,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						vals[val+1] = bindVal
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -844,8 +873,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						results = append(results, result{[]int{(i * 2) + 1, (i * 2) + 2}, bindVal})
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -894,8 +923,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						vals[val+1] = bindVal
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -946,8 +975,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						results = append(results, result{[]int64{int64((i * 2) + 1), int64((i * 2) + 2)}, bindVal})
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -996,8 +1025,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						vals[*bindVal] = bindVal
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -1051,8 +1080,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						)
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -1101,8 +1130,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						vals[val+1] = bindVal
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -1153,8 +1182,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						results = append(results, result{[]uint{uint((i * 2) + 1), uint((i * 2) + 2)}, bindVal})
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -1203,8 +1232,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						vals[val+1] = bindVal
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}
@@ -1255,8 +1284,8 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 						results = append(results, result{[]uint64{uint64((i * 2) + 1), uint64((i * 2) + 2)}, bindVal})
 					}
 
-					if _, parseErr := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); parseErr != nil {
-						errs = append(errs, parseErr)
+					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+						errs = append(errs, err)
 					}
 				}
 			}

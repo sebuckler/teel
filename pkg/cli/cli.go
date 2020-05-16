@@ -12,13 +12,6 @@ const (
 	POSIX
 )
 
-type ErrorBehavior int
-
-const (
-	ExitOnError ErrorBehavior = iota
-	ContinueOnError
-)
-
 type ArgDefinition struct {
 	Name       string
 	ShortName  rune
@@ -220,6 +213,5 @@ type Runner interface {
 }
 
 type runner struct {
-	errBehavior ErrorBehavior
-	version     string
+	version string
 }

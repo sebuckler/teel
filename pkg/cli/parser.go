@@ -81,8 +81,10 @@ func (p *parser) parseArgs(c *ParsedCommand) error {
 	case GoFlag:
 		return p.parseGoFlags()
 	case GNU:
+		addHelpArgs(c)
 		return parseArgRules(c, getGnuRules(), getPosixArgParserContext)
 	case POSIX:
+		addHelpArgs(c)
 		return parseArgRules(c, getPosixRules(), getPosixArgParserContext)
 	default:
 		return errors.New("unsupported argument parsing syntax")
@@ -160,6 +162,27 @@ func parseRootCmd(c *CommandConfig) *ParsedCommand {
 		argConfigs: c.Args,
 		Context:    c.Context,
 		Run:        c.Run,
+	}
+}
+
+func addHelpArgs(c *ParsedCommand) {
+	helpArgExists := false
+
+	for _, argConfig := range c.argConfigs {
+		if (argConfig.Name == "help" || argConfig.Name == "h") || argConfig.ShortName == 'h' {
+			helpArgExists = true
+		}
+	}
+
+	if !helpArgExists {
+		val := true
+		c.argConfigs = append(c.argConfigs, &ArgConfig{
+			Name:       "help",
+			Repeatable: true,
+			ShortName:  'h',
+			UsageText:  "display usage information for this command",
+			Value:      &val,
+		})
 	}
 }
 

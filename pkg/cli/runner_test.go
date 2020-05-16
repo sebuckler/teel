@@ -22,7 +22,7 @@ func getRunnerTestCases() map[string]func(t *testing.T, n string) {
 }
 
 func shouldErrorWhenNoRootCmdParsed(t *testing.T, n string) {
-	runner := cli.NewRunner("v1", cli.ExitOnError)
+	runner := cli.NewRunner("v1")
 	runErr := runner.Run(nil)
 
 	if runErr == nil {
@@ -32,7 +32,7 @@ func shouldErrorWhenNoRootCmdParsed(t *testing.T, n string) {
 }
 
 func shouldDoNothingWhenOnlyRootCmdParsedWithNoRun(t *testing.T, n string) {
-	runner := cli.NewRunner("v1", cli.ExitOnError)
+	runner := cli.NewRunner("v1")
 	runErr := runner.Run(&cli.ParsedCommand{})
 
 	if runErr != nil {
@@ -43,7 +43,7 @@ func shouldDoNothingWhenOnlyRootCmdParsedWithNoRun(t *testing.T, n string) {
 
 func shouldRunRootCmdRun(t *testing.T, n string) {
 	runResult := 0
-	runner := cli.NewRunner("v1", cli.ExitOnError)
+	runner := cli.NewRunner("v1")
 	runErr := runner.Run(&cli.ParsedCommand{
 		Run: func(context.Context, []string) {
 			runResult = 1
@@ -58,7 +58,7 @@ func shouldRunRootCmdRun(t *testing.T, n string) {
 
 func shouldRunSubcommandRuns(t *testing.T, n string) {
 	var runResults []int
-	runner := cli.NewRunner("v1", cli.ExitOnError)
+	runner := cli.NewRunner("v1")
 	runErr := runner.Run(&cli.ParsedCommand{
 		Subcommands: []*cli.ParsedCommand{
 			{
