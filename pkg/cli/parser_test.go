@@ -4,6 +4,7 @@ import (
 	"github.com/sebuckler/teel/pkg/cli"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -139,20 +140,28 @@ func shouldErrorWhenGnuFirstArgIsInvalidFormat(t *testing.T, n string) {
 }
 
 func shouldErrorWhenConfiguredGnuArgNameIsInvalid(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "--="}
-	parser := cli.NewParser(cli.GNU)
-	a := false
-	_, parseErr := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "=",
-			ShortName: '=',
-			Value:     &a,
-		}},
-	})
+	testCases := map[string][]string{
+		"invalid characters":      {"testcmd", "--="},
+		"invalid multi-part name '='": {"testcmd", "--foo-="},
+		"invalid multi-part name '`'": {"testcmd", "--foo-`"},
+	}
 
-	if parseErr == nil {
-		t.Fail()
-		t.Log(n + ": did not error on incorrectly configured GNU arg name")
+	for name, args := range testCases {
+		os.Args = args
+		parser := cli.NewParser(cli.GNU)
+		a := false
+		_, parseErr := parser.Parse(&cli.CommandConfig{
+			Args: []*cli.ArgConfig{{
+				Name:      strings.TrimPrefix(args[1], "--"),
+				ShortName: rune(strings.TrimPrefix(args[1], "--")[0]),
+				Value:     &a,
+			}},
+		})
+
+		if parseErr == nil {
+			t.Fail()
+			t.Log(n + ": did not error on incorrectly configured GNU arg name: " + name)
+		}
 	}
 }
 

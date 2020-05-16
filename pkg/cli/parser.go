@@ -224,6 +224,8 @@ func checkGnuOptionValidity(a string, i int, _ *argParserContext) (bool, error) 
 }
 
 func checkGnuArgIsLongOption(a string, _ int, c *argParserContext) (bool, error) {
+	argParsed := false
+
 	if !strings.HasPrefix(a, "--") || len(a) < 3 {
 		return false, nil
 	}
@@ -263,11 +265,12 @@ func checkGnuArgIsLongOption(a string, _ int, c *argParserContext) (bool, error)
 
 		updateArgParserContext(argConfig, option, a, c)
 		c.lastParsedArg.value = optArgValues
+		argParsed = true
 
 		break
 	}
 
-	return true, nil
+	return argParsed, nil
 }
 
 func checkGnuArgIsLongOptionArgument(a string, _ int, c *argParserContext) (bool, error) {
@@ -347,6 +350,8 @@ func checkPosixArgIsOperand(a string, _ int, c *argParserContext) (bool, error) 
 }
 
 func checkPosixArgIsOption(a string, _ int, c *argParserContext) (bool, error) {
+	argParsed := false
+
 	if !strings.HasPrefix(a, "-") || len(a) < 2 || a == "--" {
 		return false, nil
 	}
@@ -358,6 +363,8 @@ func checkPosixArgIsOption(a string, _ int, c *argParserContext) (bool, error) {
 
 		for _, argConfig := range c.argConfigs {
 			if optName != argConfig.Name && char != argConfig.ShortName {
+				argParsed = false
+
 				continue
 			}
 
@@ -374,12 +381,13 @@ func checkPosixArgIsOption(a string, _ int, c *argParserContext) (bool, error) {
 			}
 
 			updateArgParserContext(argConfig, optName, a, c)
+			argParsed = true
 
 			break
 		}
 	}
 
-	return true, nil
+	return argParsed, nil
 }
 
 func checkPosixArgIsOptionArgument(a string, _ int, c *argParserContext) (bool, error) {
