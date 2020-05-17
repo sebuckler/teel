@@ -77,8 +77,8 @@ func shouldParseSubcommands(t *testing.T, n string) {
 
 func shouldSetHelpModeTrueIfHelpArgExists(t *testing.T, n string) {
 	testCases := map[string]map[cli.ArgSyntax][][]string{
-		"GNU help added":    {cli.GNU: {{"testcmd", "--help"}, {"test", "-h"}}},
-		"POSIX help added":  {cli.POSIX: {{"test", "-h"}}},
+		"GNU help added":   {cli.GNU: {{"testcmd", "--help"}, {"test", "-h"}}},
+		"POSIX help added": {cli.POSIX: {{"test", "-h"}}},
 	}
 
 	for name, test := range testCases {
@@ -117,8 +117,8 @@ func shouldErrorWhenArgPassedWithNoArgsConfigured(t *testing.T, n string) {
 
 func shouldErrorWhenRepeatedArgIsNotRepeatable(t *testing.T, n string) {
 	testCases := map[cli.ArgSyntax][]string{
-		cli.GNU:    {"testcmd", "--aaa", "--aaa"},
-		cli.POSIX:  {"testcmd", "-a", "-a"},
+		cli.GNU:   {"testcmd", "--aaa", "--aaa"},
+		cli.POSIX: {"testcmd", "-a", "-a"},
 	}
 
 	for syntax, args := range testCases {
@@ -244,8 +244,8 @@ func shouldErrorWhenBoolOptHasOptArg(t *testing.T, n string) {
 		syntax cli.ArgSyntax
 		arg    string
 	}{
-		"GNU":    {cli.GNU, "-a"},
-		"POSIX":  {cli.POSIX, "-a"},
+		"GNU":   {cli.GNU, "-a"},
+		"POSIX": {cli.POSIX, "-a"},
 	}
 
 	for syntaxName, test := range testCases {
@@ -269,8 +269,8 @@ func shouldErrorWhenBoolOptHasOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredFloat64OptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -294,8 +294,8 @@ func shouldErrorWhenRequiredFloat64OptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredFloat64ListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -319,8 +319,8 @@ func shouldErrorWhenRequiredFloat64ListOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredIntOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -344,8 +344,8 @@ func shouldErrorWhenRequiredIntOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredIntListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -369,8 +369,8 @@ func shouldErrorWhenRequiredIntListOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredInt64OptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -394,8 +394,8 @@ func shouldErrorWhenRequiredInt64OptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredInt64ListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -419,8 +419,8 @@ func shouldErrorWhenRequiredInt64ListOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredStringOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -444,8 +444,8 @@ func shouldErrorWhenRequiredStringOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredStringListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -469,8 +469,8 @@ func shouldErrorWhenRequiredStringListOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredUintOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -494,8 +494,8 @@ func shouldErrorWhenRequiredUintOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredUintListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -519,8 +519,8 @@ func shouldErrorWhenRequiredUintListOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredUint64OptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
@@ -544,8 +544,8 @@ func shouldErrorWhenRequiredUint64OptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredUint64ListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GNU":    cli.GNU,
-		"POSIX":  cli.POSIX,
+		"GNU":   cli.GNU,
+		"POSIX": cli.POSIX,
 	}
 
 	for syntaxName, syntax := range testCases {
