@@ -23,7 +23,7 @@ func main() {
 		siteScaffolder := scaffolder.New(directives.NewConfig())
 		cmdBuilder := cmdbuilder.New(fileLogger, siteScaffolder)
 		parser := cli.NewParser(cli.GNU)
-		runner := cli.NewRunner(version)
+		runner := cli.NewRunner(version, os.Stdout)
 		cmdExecutor := executor.New(cmdBuilder, fileLogger, parser, runner)
 
 		signalHandler.Handle(func(os.Signal) { _ = f.Flush() })

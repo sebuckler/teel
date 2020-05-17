@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"io"
 )
 
 type ArgSyntax int
@@ -120,19 +121,22 @@ type ArgConfig struct {
 	Value      interface{}
 }
 
-type goFlagArgValue struct {
-	arg        *parsedArg
-	parsedArgs []*parsedArg
-	repeatable bool
-}
+type HelpFunc func(s ArgSyntax, w io.Writer) error
 
 type CommandConfig struct {
 	Args        []*ArgConfig
 	Context     context.Context
+	HelpFunc    HelpFunc
 	Name        string
 	Operands    []string
 	Run         CommandRunFunc
 	Subcommands []*CommandConfig
+}
+
+type goFlagArgValue struct {
+	arg        *parsedArg
+	parsedArgs []*parsedArg
+	repeatable bool
 }
 
 type parsedArg struct {
@@ -147,12 +151,15 @@ type ParsedCommand struct {
 	args        []string
 	argConfigs  []*ArgConfig
 	Context     context.Context
+	HelpFunc    HelpFunc
+	HelpMode    bool
 	Name        string
 	Operands    []string
 	parentCmd   string
 	parsedArgs  []*parsedArg
 	Run         CommandRunFunc
 	Subcommands []*ParsedCommand
+	Syntax      ArgSyntax
 }
 
 type argParserContext struct {
@@ -164,7 +171,7 @@ type argParserContext struct {
 	terminatorIndex int
 }
 
-type argParserRule func(a string, i int, c *argParserContext) (bool, error)
+type argParserRule func(a *string, i int, c *argParserContext) (bool, error)
 
 type argParserInit func(a []string) *argParserContext
 
@@ -205,6 +212,8 @@ type Parser interface {
 
 type parser struct {
 	argSyntax      ArgSyntax
+	helpFunc       HelpFunc
+	helpMode       bool
 	parsedCommands []*ParsedCommand
 }
 
@@ -214,4 +223,5 @@ type Runner interface {
 
 type runner struct {
 	version string
+	writer  io.Writer
 }

@@ -2,6 +2,7 @@ package cli_test
 
 import (
 	"github.com/sebuckler/teel/pkg/cli"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -18,7 +19,7 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 	return map[string]func(t *testing.T, n string){
 		"should error when unsupported parse syntax used":            shouldErrorWhenUnsupportedParseSyntaxUsed,
 		"should parse subcommands":                                   shouldParseSubcommands,
-		"should add help args if not configured":                     shouldAddHelpArgsIfNotConfigured,
+		"should set help mode true if help arg exists":               shouldSetHelpModeTrueIfHelpArgExists,
 		"should error when arg passed with no args configured":       shouldErrorWhenArgPassedWithNoArgsConfigured,
 		"should error when repeated arg is not repeatable":           shouldErrorWhenRepeatedArgIsNotRepeatable,
 		"should error when GoFlag first arg is invalid format":       shouldErrorWhenGoFlagFirstArgIsInvalidFormat,
@@ -75,7 +76,7 @@ func shouldParseSubcommands(t *testing.T, n string) {
 	}
 }
 
-func shouldAddHelpArgsIfNotConfigured(t *testing.T, n string) {
+func shouldSetHelpModeTrueIfHelpArgExists(t *testing.T, n string) {
 	testCases := map[string]map[cli.ArgSyntax][][]string{
 		"GoFlag help added": {cli.GoFlag: {{"testcmd", "-h"}, {"testcmd", "-help"}}},
 		"GNU help added":    {cli.GNU: {{"testcmd", "--help"}, {"test", "-h"}}},
@@ -86,15 +87,21 @@ func shouldAddHelpArgsIfNotConfigured(t *testing.T, n string) {
 		for syntax, argSet := range test {
 			for _, args := range argSet {
 				os.Args = args
+				val := false
 				parser := cli.NewParser(syntax)
-				config := &cli.CommandConfig{}
-				_, err := parser.Parse(config)
+				config := &cli.CommandConfig{
+					Args: []*cli.ArgConfig{{Name: "help", ShortName: 'h', Value: &val}},
+					HelpFunc: func(s cli.ArgSyntax, w io.Writer) error {
+						return nil
+					},
+				}
+				parsedCommand, err := parser.Parse(config)
 
 				if syntax == cli.GoFlag && err != nil && strings.Contains(err.Error(), "flag: help requested") {
 					err = nil
 				}
 
-				if err != nil {
+				if err != nil || (parsedCommand != nil && !parsedCommand.HelpMode) {
 					t.Fail()
 					t.Log(n + ": failed to parse help args: " + name)
 				}

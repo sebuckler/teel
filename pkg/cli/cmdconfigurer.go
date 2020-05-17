@@ -2,6 +2,9 @@ package cli
 
 import (
 	"context"
+	"io"
+	"math"
+	"strings"
 )
 
 func NewCommand(n string, c context.Context) CommandConfigurer {
@@ -120,17 +123,22 @@ func (c *commandConfigurer) AddUint64ListArg(p *[]uint64, a *ArgDefinition) {
 }
 
 func (c *commandConfigurer) Configure() *CommandConfig {
+	argConfigs := c.configureArgs()
+	subcmdConfigs := c.configureSubcommands()
+
 	return &CommandConfig{
-		Args:        c.configureArgs(),
+		Args:        argConfigs,
 		Context:     c.ctx,
+		HelpFunc:    c.configureHelpFunc(argConfigs, subcmdConfigs),
 		Name:        c.name,
 		Run:         c.run,
-		Subcommands: c.configureSubcommands(),
+		Subcommands: subcmdConfigs,
 	}
 }
 
 func (c *commandConfigurer) configureArgs() []*ArgConfig {
 	var argConfigs []*ArgConfig
+	helpArgConfigExists := false
 
 	argConfigs = append(argConfigs, c.configureBoolArgs()...)
 	argConfigs = append(argConfigs, c.configureFloat64Args()...)
@@ -146,7 +154,105 @@ func (c *commandConfigurer) configureArgs() []*ArgConfig {
 	argConfigs = append(argConfigs, c.configureUint64Args()...)
 	argConfigs = append(argConfigs, c.configureUint64ListArgs()...)
 
+	for _, argConfig := range argConfigs {
+		if (argConfig.Name == "help" || argConfig.Name == "h") || argConfig.ShortName == 'h' {
+			helpArgConfigExists = true
+
+			break
+		}
+	}
+
+	if !helpArgConfigExists {
+		val := true
+		argConfigs = append(argConfigs, &ArgConfig{
+			Name:       "help",
+			Repeatable: true,
+			ShortName:  'h',
+			UsageText:  "display usage information for this command",
+			Value:      &val,
+		})
+	}
+
 	return argConfigs
+}
+
+func (c *commandConfigurer) configureHelpFunc(a []*ArgConfig, s []*CommandConfig) func(s ArgSyntax, w io.Writer) error {
+	return func(syntax ArgSyntax, w io.Writer) error {
+		_, err := w.Write([]byte(c.getHelpTemplate(a, s, syntax)))
+
+		return err
+	}
+}
+
+func (c *commandConfigurer) getHelpTemplate(a []*ArgConfig, s []*CommandConfig, syntax ArgSyntax) string {
+	var helpBuilder strings.Builder
+	longestArgLine := float64(0)
+	helpBuilder.WriteString(`Usage:
+    ` + c.name)
+
+	if len(s) > 0 {
+		helpBuilder.WriteString(` [command]
+
+Commands:
+    `)
+	}
+
+	for _, cmd := range s {
+		helpBuilder.WriteString(cmd.Name + `
+    `)
+	}
+
+	if len(a) > 0 {
+		helpBuilder.WriteString(`
+Options:
+    `)
+	}
+
+	for i, arg := range a {
+		argLine := ""
+
+		switch syntax {
+		case GNU:
+			if arg.ShortName > 0 {
+				argLine = "-" + string(arg.ShortName) + ", "
+				longestArgLine = math.Max(float64(len(argLine)), longestArgLine)
+			}
+
+			if arg.Name != "" {
+				if argLine == "" {
+					argLine = "-" + string(arg.Name[0]) + ", "
+				}
+
+				argLine += "--" + arg.Name
+				longestArgLine = math.Max(float64(len(argLine)), longestArgLine)
+			}
+
+			strings.TrimSuffix(argLine, ", ")
+		case POSIX:
+			if arg.ShortName > 0 {
+				argLine = "-" + string(arg.ShortName) + ", "
+				longestArgLine = math.Max(float64(len(argLine)), longestArgLine)
+			}
+
+			if argLine == "" && arg.Name != "" {
+				argLine = "-" + string(arg.Name[0])
+				longestArgLine = math.Max(float64(len(argLine)), longestArgLine)
+			}
+
+			strings.TrimSuffix(argLine, ", ")
+		}
+
+		helpBuilder.WriteString(argLine)
+		helpBuilder.WriteString(strings.Repeat(" ", int(longestArgLine)-len(argLine)+4))
+		helpBuilder.WriteString(arg.UsageText + `
+`)
+
+		if i < len(a)-1 {
+			helpBuilder.WriteString(strings.Repeat(" ", 4))
+		}
+	}
+
+	return helpBuilder.String()
 }
 
 func (c *commandConfigurer) configureBoolArgs() []*ArgConfig {
