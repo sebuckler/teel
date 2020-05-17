@@ -153,6 +153,7 @@ type ParsedCommand struct {
 	Run         CommandRunFunc
 	Subcommands []*ParsedCommand
 	Syntax      ArgSyntax
+	VersionMode bool
 }
 
 type argParserContext struct {

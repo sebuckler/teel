@@ -27,7 +27,7 @@ func New(l logger.Logger, s scaffolder.Scaffolder) CommandBuilder {
 func (c *commandBuilder) Build() cli.CommandConfigurer {
 	var a bool
 	var b string
-	rootCmd := cli.NewCommand("", context.Background())
+	rootCmd := cli.NewCommand("teel", context.Background())
 	rootCmd.AddBoolArg(&a, &cli.ArgDefinition{
 		Name:      "a",
 		ShortName: 'a',

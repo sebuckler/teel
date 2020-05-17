@@ -21,6 +21,12 @@ func (r *runner) Run(p *ParsedCommand) error {
 		return p.HelpFunc(p.Syntax, r.writer)
 	}
 
+	if p.VersionMode {
+		_, writeErr := r.writer.Write([]byte(p.Name + " " + r.version + "\n"))
+
+		return writeErr
+	}
+
 	if p.Run != nil {
 		p.Run(p.Context, p.Operands)
 	}

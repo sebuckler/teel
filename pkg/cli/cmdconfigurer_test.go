@@ -438,7 +438,7 @@ func shouldHaveOnlyHelpCommandWhenNoOtherArgDefined(t *testing.T, n string) {
 	cmd.AddBoolArg(nil, nil)
 	config := cmd.Configure()
 
-	if len(config.Args) > 2 || config.Args[1].Name != "help" {
+	if len(config.Args) > 3 || (config.Args[1].Name != "help" && config.Args[2].Name != "version") {
 		t.Fail()
 		t.Log(n + ": help arg not configured")
 	}

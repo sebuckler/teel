@@ -40,6 +40,7 @@ func (p *parser) parseRootCmd(c *CommandConfig) *ParsedCommand {
 		argConfigs: c.Args,
 		Context:    c.Context,
 		HelpFunc:   c.HelpFunc,
+		Name:       c.Name,
 		Run:        c.Run,
 		Syntax:     p.argSyntax,
 	}
@@ -152,6 +153,10 @@ func (p *parser) bindArgs(c *ParsedCommand) error {
 			}
 
 			p.helpMode = true
+		}
+
+		if arg.name == "version" || arg.name == "v" {
+			c.VersionMode = true
 		}
 
 		if argErr := setArgValue(arg); argErr != nil {

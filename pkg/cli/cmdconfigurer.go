@@ -139,6 +139,7 @@ func (c *commandConfigurer) Configure() *CommandConfig {
 func (c *commandConfigurer) configureArgs() []*ArgConfig {
 	var argConfigs []*ArgConfig
 	helpArgConfigExists := false
+	versionArgExists := false
 
 	argConfigs = append(argConfigs, c.configureBoolArgs()...)
 	argConfigs = append(argConfigs, c.configureFloat64Args()...)
@@ -155,10 +156,12 @@ func (c *commandConfigurer) configureArgs() []*ArgConfig {
 	argConfigs = append(argConfigs, c.configureUint64ListArgs()...)
 
 	for _, argConfig := range argConfigs {
-		if (argConfig.Name == "help" || argConfig.Name == "h") || argConfig.ShortName == 'h' {
+		if argConfig.Name == "help" || argConfig.Name == "h" || argConfig.ShortName == 'h' {
 			helpArgConfigExists = true
+		}
 
-			break
+		if argConfig.Name == "version" || argConfig.Name == "v" || argConfig.ShortName == 'v' {
+			versionArgExists = true
 		}
 	}
 
@@ -169,6 +172,17 @@ func (c *commandConfigurer) configureArgs() []*ArgConfig {
 			Repeatable: true,
 			ShortName:  'h',
 			UsageText:  "display usage information for this command",
+			Value:      &val,
+		})
+	}
+
+	if !versionArgExists {
+		val := true
+		argConfigs = append(argConfigs, &ArgConfig{
+			Name:       "version",
+			Repeatable: true,
+			ShortName:  'v',
+			UsageText:  "display the version for the utility",
 			Value:      &val,
 		})
 	}
@@ -187,6 +201,8 @@ func (c *commandConfigurer) configureHelpFunc(a []*ArgConfig, s []*CommandConfig
 func (c *commandConfigurer) getHelpTemplate(a []*ArgConfig, s []*CommandConfig, syntax ArgSyntax) string {
 	var helpBuilder strings.Builder
 	longestArgLine := float64(0)
+	var argLines [][]string
+
 	helpBuilder.WriteString(`Usage:
     ` + c.name)
 
@@ -208,14 +224,13 @@ Options:
     `)
 	}
 
-	for i, arg := range a {
+	for _, arg := range a {
 		argLine := ""
 
 		switch syntax {
 		case GNU:
 			if arg.ShortName > 0 {
 				argLine = "-" + string(arg.ShortName) + ", "
-				longestArgLine = math.Max(float64(len(argLine)), longestArgLine)
 			}
 
 			if arg.Name != "" {
@@ -224,30 +239,32 @@ Options:
 				}
 
 				argLine += "--" + arg.Name
-				longestArgLine = math.Max(float64(len(argLine)), longestArgLine)
 			}
 
 			strings.TrimSuffix(argLine, ", ")
 		case POSIX:
 			if arg.ShortName > 0 {
 				argLine = "-" + string(arg.ShortName) + ", "
-				longestArgLine = math.Max(float64(len(argLine)), longestArgLine)
 			}
 
 			if argLine == "" && arg.Name != "" {
 				argLine = "-" + string(arg.Name[0])
-				longestArgLine = math.Max(float64(len(argLine)), longestArgLine)
 			}
 
 			strings.TrimSuffix(argLine, ", ")
 		}
 
-		helpBuilder.WriteString(argLine)
-		helpBuilder.WriteString(strings.Repeat(" ", int(longestArgLine)-len(argLine)+4))
-		helpBuilder.WriteString(arg.UsageText + `
+		longestArgLine = math.Max(float64(len(argLine)), longestArgLine)
+		argLines = append(argLines, []string{argLine, arg.UsageText})
+	}
+
+	for i, argLine := range argLines {
+		helpBuilder.WriteString(argLine[0])
+		helpBuilder.WriteString(strings.Repeat(" ", int(longestArgLine)-len(argLine[0])+4))
+		helpBuilder.WriteString(argLine[1] + `
 `)
 
-		if i < len(a)-1 {
+		if i < len(argLines)-1 {
 			helpBuilder.WriteString(strings.Repeat(" ", 4))
 		}
 	}
