@@ -2,7 +2,6 @@ package cli
 
 import (
 	"errors"
-	"flag"
 	"os"
 	"strconv"
 	"strings"
@@ -97,8 +96,6 @@ func (p *parser) parseArgs(c *ParsedCommand) error {
 	switch p.argSyntax {
 	case GNU:
 		return p.parseArgRules(c, getGnuRules(), getPosixArgParserContext)
-	case GoFlag:
-		return p.parseGoFlags()
 	case POSIX:
 		return p.parseArgRules(c, getPosixRules(), getPosixArgParserContext)
 	default:
@@ -163,75 +160,6 @@ func (p *parser) bindArgs(c *ParsedCommand) error {
 	}
 
 	return nil
-}
-
-func (p *parser) parseGoFlags() error {
-	for _, cmd := range p.parsedCommands {
-		flagSet := flag.NewFlagSet(cmd.Name, flag.ContinueOnError)
-		var parsedArgs []*parsedArg
-
-		for _, argConfig := range cmd.argConfigs {
-			if argConfig.Name == "help" {
-				continue
-			}
-
-			flagSet.Var(&goFlagArgValue{
-				arg: &parsedArg{
-					bindVal:  argConfig.Value,
-					name:     argConfig.Name,
-					required: argConfig.Required,
-				},
-				parsedArgs: parsedArgs,
-				repeatable: argConfig.Repeatable,
-			}, argConfig.Name, argConfig.UsageText)
-		}
-
-		if parseErr := flagSet.Parse(cmd.args); parseErr != nil {
-			return parseErr
-		}
-	}
-
-	return nil
-}
-
-func (g *goFlagArgValue) IsBoolFlag() bool {
-	_, ok := g.arg.bindVal.(*bool)
-
-	return ok
-}
-
-func (g *goFlagArgValue) Set(v string) error {
-	for _, pArg := range g.parsedArgs {
-		if g.arg.name == pArg.name && !g.repeatable {
-			return errors.New("non-repeatable GoFlag option: -" + g.arg.name)
-		}
-	}
-
-	if g.IsBoolFlag() && g.isValidBoolVal(v) {
-		g.arg.value = []string{""}
-	} else {
-		g.arg.value = []string{v}
-	}
-
-	g.parsedArgs = append(g.parsedArgs, g.arg)
-
-	return setArgValue(g.arg)
-}
-
-func (g *goFlagArgValue) String() string {
-	return ""
-}
-
-func (g *goFlagArgValue) isValidBoolVal(v string) bool {
-	boolVals := []string{"1", "0", "t", "f", "T", "F", "true", "false", "TRUE", "FALSE", "True", "False"}
-
-	for _, val := range boolVals {
-		if val == v {
-			return true
-		}
-	}
-
-	return false
 }
 
 func getGnuRules() []argParserRule {

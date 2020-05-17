@@ -9,7 +9,6 @@ type ArgSyntax int
 
 const (
 	GNU ArgSyntax = iota
-	GoFlag
 	POSIX
 )
 
@@ -131,12 +130,6 @@ type CommandConfig struct {
 	Operands    []string
 	Run         CommandRunFunc
 	Subcommands []*CommandConfig
-}
-
-type goFlagArgValue struct {
-	arg        *parsedArg
-	parsedArgs []*parsedArg
-	repeatable bool
 }
 
 type parsedArg struct {

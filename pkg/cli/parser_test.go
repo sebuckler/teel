@@ -22,7 +22,6 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 		"should set help mode true if help arg exists":               shouldSetHelpModeTrueIfHelpArgExists,
 		"should error when arg passed with no args configured":       shouldErrorWhenArgPassedWithNoArgsConfigured,
 		"should error when repeated arg is not repeatable":           shouldErrorWhenRepeatedArgIsNotRepeatable,
-		"should error when GoFlag first arg is invalid format":       shouldErrorWhenGoFlagFirstArgIsInvalidFormat,
 		"should error when GNU first arg is invalid format":          shouldErrorWhenGnuFirstArgIsInvalidFormat,
 		"should error when configured GNU arg name is invalid":       shouldErrorWhenConfiguredGnuArgNameIsInvalid,
 		"should error when GNU optional opt-arg is invalid format":   shouldErrorWhenGnuOptionalOptArgIsInvalidFormat,
@@ -78,7 +77,6 @@ func shouldParseSubcommands(t *testing.T, n string) {
 
 func shouldSetHelpModeTrueIfHelpArgExists(t *testing.T, n string) {
 	testCases := map[string]map[cli.ArgSyntax][][]string{
-		"GoFlag help added": {cli.GoFlag: {{"testcmd", "-h"}, {"testcmd", "-help"}}},
 		"GNU help added":    {cli.GNU: {{"testcmd", "--help"}, {"test", "-h"}}},
 		"POSIX help added":  {cli.POSIX: {{"test", "-h"}}},
 	}
@@ -96,10 +94,6 @@ func shouldSetHelpModeTrueIfHelpArgExists(t *testing.T, n string) {
 					},
 				}
 				parsedCommand, err := parser.Parse(config)
-
-				if syntax == cli.GoFlag && err != nil && strings.Contains(err.Error(), "flag: help requested") {
-					err = nil
-				}
 
 				if err != nil || (parsedCommand != nil && !parsedCommand.HelpMode) {
 					t.Fail()
@@ -123,7 +117,6 @@ func shouldErrorWhenArgPassedWithNoArgsConfigured(t *testing.T, n string) {
 
 func shouldErrorWhenRepeatedArgIsNotRepeatable(t *testing.T, n string) {
 	testCases := map[cli.ArgSyntax][]string{
-		cli.GoFlag: {"testcmd", "-aaa", "-aaa"},
 		cli.GNU:    {"testcmd", "--aaa", "--aaa"},
 		cli.POSIX:  {"testcmd", "-a", "-a"},
 	}
@@ -145,24 +138,6 @@ func shouldErrorWhenRepeatedArgIsNotRepeatable(t *testing.T, n string) {
 			t.Fail()
 			t.Log(n + ": did not error on non-repeatable arg being repeated")
 		}
-	}
-}
-
-func shouldErrorWhenGoFlagFirstArgIsInvalidFormat(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a=value"}
-	parser := cli.NewParser(cli.GoFlag)
-	a := false
-	_, err := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
-
-	if err == nil {
-		t.Fail()
-		t.Log(n + ": did not return error with invalid GNU argument")
 	}
 }
 
@@ -269,7 +244,6 @@ func shouldErrorWhenBoolOptHasOptArg(t *testing.T, n string) {
 		syntax cli.ArgSyntax
 		arg    string
 	}{
-		"GoFlag": {cli.GoFlag, "-a=value"},
 		"GNU":    {cli.GNU, "-a"},
 		"POSIX":  {cli.POSIX, "-a"},
 	}
@@ -295,7 +269,6 @@ func shouldErrorWhenBoolOptHasOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredFloat64OptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -321,7 +294,6 @@ func shouldErrorWhenRequiredFloat64OptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredFloat64ListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -347,7 +319,6 @@ func shouldErrorWhenRequiredFloat64ListOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredIntOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -373,7 +344,6 @@ func shouldErrorWhenRequiredIntOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredIntListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -399,7 +369,6 @@ func shouldErrorWhenRequiredIntListOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredInt64OptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -425,7 +394,6 @@ func shouldErrorWhenRequiredInt64OptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredInt64ListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -451,7 +419,6 @@ func shouldErrorWhenRequiredInt64ListOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredStringOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -477,7 +444,6 @@ func shouldErrorWhenRequiredStringOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredStringListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -503,7 +469,6 @@ func shouldErrorWhenRequiredStringListOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredUintOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -529,7 +494,6 @@ func shouldErrorWhenRequiredUintOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredUintListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -555,7 +519,6 @@ func shouldErrorWhenRequiredUintListOptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredUint64OptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -581,7 +544,6 @@ func shouldErrorWhenRequiredUint64OptHasNoOptArg(t *testing.T, n string) {
 
 func shouldErrorWhenRequiredUint64ListOptHasNoOptArg(t *testing.T, n string) {
 	testCases := map[string]cli.ArgSyntax{
-		"GoFlag": cli.GoFlag,
 		"GNU":    cli.GNU,
 		"POSIX":  cli.POSIX,
 	}
@@ -653,13 +615,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 	testCases := map[string]func() func() bool{
 		"bool options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:                        {cmd, "-aaa"},
-					&[]string{"aaa", "bbb"}:                 {cmd, "-aaa", "-bbb"},
-					&[]string{"a", "b", "c", "d", "e", "f"}: {cmd, "-a=1", "-b=0", "-c=t", "-d=f", "-e=T", "-f=F"},
-					&[]string{"a", "b", "c"}:                {cmd, "-a=true", "-b=false", "-c=TRUE"},
-					&[]string{"a", "b", "c"}:                {cmd, "-a=FALSE", "-b=True", "-c=False"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa", "--bbb"},
@@ -696,10 +651,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		},
 		"float64 options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1.0"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1.0", "-bbb=2.0"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1.0"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1.0", "--bbb=2.0"},
@@ -748,10 +699,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 				bindVal *[]float64
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1.0,2.0"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1.0,2.0", "-bbb=3.0,4.0"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1.0,2.0"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1.0,2.0", "--bbb=3.0,4.0"},
@@ -798,10 +745,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		},
 		"int options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1", "-bbb=2"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
@@ -850,10 +793,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 				bindVal *[]int
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1,2", "-bbb=3,4"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
@@ -900,10 +839,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		},
 		"int64 options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1", "-bbb=2"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
@@ -952,10 +887,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 				bindVal *[]int64
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1,2", "-bbb=3,4"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
@@ -1002,10 +933,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		},
 		"string options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1", "-bbb=2"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
@@ -1054,10 +981,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 				bindVal *[]string
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1,2", "-bbb=3,4"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
@@ -1107,10 +1030,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		},
 		"uint options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1", "-bbb=2"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
@@ -1159,10 +1078,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 				bindVal *[]uint
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1,2", "-bbb=3,4"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
@@ -1209,10 +1124,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 		},
 		"uint64 options": func() func() bool {
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1", "-bbb=2"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1", "--bbb=2"},
@@ -1261,10 +1172,6 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 				bindVal *[]uint64
 			}
 			tests := map[cli.ArgSyntax]map[*[]string][]string{
-				cli.GoFlag: {
-					&[]string{"aaa"}:        {cmd, "-aaa=1,2"},
-					&[]string{"aaa", "bbb"}: {cmd, "-aaa=1,2", "--bbb=3,4"},
-				},
 				cli.GNU: {
 					&[]string{"aaa"}:        {cmd, "--aaa=1,2"},
 					&[]string{"aaa", "bbb"}: {cmd, "--aaa=1,2", "--bbb=3,4"},
