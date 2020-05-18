@@ -6,13 +6,13 @@ import (
 	"testing"
 )
 
-func TestCommandConfigurer_Configure(t *testing.T) {
-	for name, test := range getConfigurerTestCases() {
+func TestCommandBuilder_Build(t *testing.T) {
+	for name, test := range getBuilderTestCases() {
 		test(t, name)
 	}
 }
 
-func getConfigurerTestCases() map[string]func(t *testing.T, n string) {
+func getBuilderTestCases() map[string]func(t *testing.T, n string) {
 	return map[string]func(t *testing.T, n string){
 		"should have only command defined":                        shouldHaveOnlyCommandDefined,
 		"should have command with only bool arg":                  shouldHaveCommandWithOnlyBoolArg,
@@ -35,10 +35,10 @@ func getConfigurerTestCases() map[string]func(t *testing.T, n string) {
 }
 
 func shouldHaveOnlyCommandDefined(t *testing.T, n string) {
-	cmd := cli.NewCommand("foo", context.Background())
-	config := cmd.Configure()
+	cmdBuilder := cli.NewCommand("foo", context.Background())
+	command := cmdBuilder.Build()
 
-	if config.Name != "foo" || config.Run != nil || len(config.Subcommands) > 0 {
+	if command.Name != "foo" || command.Run != nil || len(command.Subcommands) > 0 {
 		t.Fail()
 		t.Log(n + ": command incorrectly configured")
 	}
@@ -56,13 +56,13 @@ func shouldHaveCommandWithOnlyBoolArg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
+		cmdBuilder := cli.NewCommand("foo", context.Background())
 		val, def := test()
-		cmd.AddBoolArg(val, def)
-		config := cmd.Configure()
-		_, ok := config.Args[0].Value.(*bool)
+		cmdBuilder.AddBoolArg(val, def)
+		command := cmdBuilder.Build()
+		_, ok := command.Args[0].Value.(*bool)
 
-		if config.Args[0].Name != "bar" || !ok {
+		if command.Args[0].Name != "bar" || !ok {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -71,12 +71,12 @@ func shouldHaveCommandWithOnlyBoolArg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyFloat64Arg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *float64) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *float64) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *float64) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *float64) bool {
 			c.AddFloat64Arg(nil, argDef)
 			return func(v *float64) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *float64) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *float64) bool {
 			val := float64(1)
 			c.AddFloat64Arg(&val, argDef)
 			return func(v *float64) bool { return *v == val }
@@ -84,12 +84,12 @@ func shouldHaveCommandWithOnlyFloat64Arg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*float64)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*float64)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -98,12 +98,12 @@ func shouldHaveCommandWithOnlyFloat64Arg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyFloat64ListArg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *[]float64) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *[]float64) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *[]float64) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *[]float64) bool {
 			c.AddFloat64ListArg(nil, argDef)
 			return func(v *[]float64) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *[]float64) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *[]float64) bool {
 			val := []float64{1}
 			c.AddFloat64ListArg(&val, argDef)
 			return func(v *[]float64) bool { return len(*v) == len(val) && (*v)[0] == val[0] }
@@ -111,12 +111,12 @@ func shouldHaveCommandWithOnlyFloat64ListArg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*[]float64)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*[]float64)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -125,12 +125,12 @@ func shouldHaveCommandWithOnlyFloat64ListArg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyIntArg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *int) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *int) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *int) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *int) bool {
 			c.AddIntArg(nil, argDef)
 			return func(v *int) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *int) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *int) bool {
 			val := 1
 			c.AddIntArg(&val, argDef)
 			return func(v *int) bool { return *v == val }
@@ -138,12 +138,12 @@ func shouldHaveCommandWithOnlyIntArg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*int)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*int)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -152,12 +152,12 @@ func shouldHaveCommandWithOnlyIntArg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyIntListArg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *[]int) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *[]int) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *[]int) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *[]int) bool {
 			c.AddIntListArg(nil, argDef)
 			return func(v *[]int) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *[]int) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *[]int) bool {
 			val := []int{1}
 			c.AddIntListArg(&val, argDef)
 			return func(v *[]int) bool { return len(*v) == len(val) && (*v)[0] == val[0] }
@@ -165,12 +165,12 @@ func shouldHaveCommandWithOnlyIntListArg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*[]int)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*[]int)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -179,12 +179,12 @@ func shouldHaveCommandWithOnlyIntListArg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyInt64Arg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *int64) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *int64) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *int64) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *int64) bool {
 			c.AddInt64Arg(nil, argDef)
 			return func(v *int64) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *int64) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *int64) bool {
 			val := int64(1)
 			c.AddInt64Arg(&val, argDef)
 			return func(v *int64) bool { return *v == val }
@@ -192,12 +192,12 @@ func shouldHaveCommandWithOnlyInt64Arg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*int64)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*int64)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -206,12 +206,12 @@ func shouldHaveCommandWithOnlyInt64Arg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyInt64ListArg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *[]int64) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *[]int64) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *[]int64) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *[]int64) bool {
 			c.AddInt64ListArg(nil, argDef)
 			return func(v *[]int64) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *[]int64) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *[]int64) bool {
 			val := []int64{1}
 			c.AddInt64ListArg(&val, argDef)
 			return func(v *[]int64) bool { return len(*v) == len(val) && (*v)[0] == val[0] }
@@ -219,12 +219,12 @@ func shouldHaveCommandWithOnlyInt64ListArg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*[]int64)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*[]int64)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -233,12 +233,12 @@ func shouldHaveCommandWithOnlyInt64ListArg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyStringArg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *string) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *string) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *string) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *string) bool {
 			c.AddStringArg(nil, argDef)
 			return func(v *string) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *string) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *string) bool {
 			val := "value"
 			c.AddStringArg(&val, argDef)
 			return func(v *string) bool { return *v == val }
@@ -246,12 +246,12 @@ func shouldHaveCommandWithOnlyStringArg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*string)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*string)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -260,12 +260,12 @@ func shouldHaveCommandWithOnlyStringArg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyStringListArg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *[]string) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *[]string) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *[]string) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *[]string) bool {
 			c.AddStringListArg(nil, argDef)
 			return func(v *[]string) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *[]string) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *[]string) bool {
 			val := []string{"value"}
 			c.AddStringListArg(&val, argDef)
 			return func(v *[]string) bool { return len(*v) == len(val) && (*v)[0] == val[0] }
@@ -273,12 +273,12 @@ func shouldHaveCommandWithOnlyStringListArg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*[]string)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*[]string)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -287,12 +287,12 @@ func shouldHaveCommandWithOnlyStringListArg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyUintArg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *uint) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *uint) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *uint) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *uint) bool {
 			c.AddUintArg(nil, argDef)
 			return func(v *uint) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *uint) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *uint) bool {
 			val := uint(1)
 			c.AddUintArg(&val, argDef)
 			return func(v *uint) bool { return *v == val }
@@ -300,12 +300,12 @@ func shouldHaveCommandWithOnlyUintArg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*uint)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*uint)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -314,12 +314,12 @@ func shouldHaveCommandWithOnlyUintArg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyUintListArg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *[]uint) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *[]uint) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *[]uint) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *[]uint) bool {
 			c.AddUintListArg(nil, argDef)
 			return func(v *[]uint) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *[]uint) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *[]uint) bool {
 			val := []uint{1}
 			c.AddUintListArg(&val, argDef)
 			return func(v *[]uint) bool { return len(*v) == len(val) && (*v)[0] == val[0] }
@@ -327,12 +327,12 @@ func shouldHaveCommandWithOnlyUintListArg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*[]uint)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*[]uint)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -341,12 +341,12 @@ func shouldHaveCommandWithOnlyUintListArg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyUint64Arg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *uint64) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *uint64) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *uint64) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *uint64) bool {
 			c.AddUint64Arg(nil, argDef)
 			return func(v *uint64) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *uint64) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *uint64) bool {
 			val := uint64(1)
 			c.AddUint64Arg(&val, argDef)
 			return func(v *uint64) bool { return *v == val }
@@ -354,12 +354,12 @@ func shouldHaveCommandWithOnlyUint64Arg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*uint64)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*uint64)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -368,12 +368,12 @@ func shouldHaveCommandWithOnlyUint64Arg(t *testing.T, n string) {
 
 func shouldHaveCommandWithOnlyUint64ListArg(t *testing.T, n string) {
 	argDef := &cli.ArgDefinition{Name: "bar", ShortName: 'b'}
-	testCases := map[string]func(c cli.CommandConfigurer) func(v *[]uint64) bool{
-		"nil pointer value": func(c cli.CommandConfigurer) func(v *[]uint64) bool {
+	testCases := map[string]func(c cli.CommandBuilder) func(v *[]uint64) bool{
+		"nil pointer value": func(c cli.CommandBuilder) func(v *[]uint64) bool {
 			c.AddUint64ListArg(nil, argDef)
 			return func(v *[]uint64) bool { return v == nil }
 		},
-		"set pointer value": func(c cli.CommandConfigurer) func(v *[]uint64) bool {
+		"set pointer value": func(c cli.CommandBuilder) func(v *[]uint64) bool {
 			val := []uint64{1}
 			c.AddUint64ListArg(&val, argDef)
 			return func(v *[]uint64) bool { return len(*v) == len(val) && (*v)[0] == val[0] }
@@ -381,12 +381,12 @@ func shouldHaveCommandWithOnlyUint64ListArg(t *testing.T, n string) {
 	}
 
 	for name, test := range testCases {
-		cmd := cli.NewCommand("foo", context.Background())
-		success := test(cmd)
-		config := cmd.Configure()
-		val, ok := config.Args[0].Value.(*[]uint64)
+		cmdBuilder := cli.NewCommand("foo", context.Background())
+		success := test(cmdBuilder)
+		command := cmdBuilder.Build()
+		val, ok := command.Args[0].Value.(*[]uint64)
 
-		if config.Args[0].Name != "bar" || !ok || !success(val) {
+		if command.Args[0].Name != "bar" || !ok || !success(val) {
 			t.Fail()
 			t.Log(n + ": args incorrectly configured for " + name)
 		}
@@ -394,14 +394,14 @@ func shouldHaveCommandWithOnlyUint64ListArg(t *testing.T, n string) {
 }
 
 func shouldHaveCommandWithRunFunction(t *testing.T, n string) {
-	cmd := cli.NewCommand("foo", context.Background())
-	cmd.AddRunFunc(func(ctx context.Context, o []string) {
+	cmdBuilder := cli.NewCommand("foo", context.Background())
+	cmdBuilder.AddRunFunc(func(ctx context.Context, o []string) {
 		t.Fail()
 		t.Log(n + ": should not have run command")
 	})
-	config := cmd.Configure()
+	command := cmdBuilder.Build()
 
-	if config.Run == nil {
+	if command.Run == nil {
 		t.Fail()
 		t.Log(n + ": run function incorrectly configured")
 	}
@@ -409,18 +409,18 @@ func shouldHaveCommandWithRunFunction(t *testing.T, n string) {
 
 func shouldHaveSubcommands(t *testing.T, n string) {
 	ctx := context.Background()
-	cmd := cli.NewCommand("foo", ctx)
-	cmd.AddSubcommand(cli.NewCommand("bar", ctx))
-	cmd.AddSubcommand(cli.NewCommand("bar2", ctx))
-	cmd.AddSubcommand(cli.NewCommand("bar3", ctx))
-	config := cmd.Configure()
+	cmdBuilder := cli.NewCommand("foo", ctx)
+	cmdBuilder.AddSubcommand(cli.NewCommand("bar", ctx))
+	cmdBuilder.AddSubcommand(cli.NewCommand("bar2", ctx))
+	cmdBuilder.AddSubcommand(cli.NewCommand("bar3", ctx))
+	command := cmdBuilder.Build()
 
-	if len(config.Subcommands) != 3 {
+	if len(command.Subcommands) != 3 {
 		t.Fail()
 		t.Log(n + ": subcommands incorrectly configured")
 	}
 
-	for _, subCmd := range config.Subcommands {
+	for _, subCmd := range command.Subcommands {
 		switch subCmd.Name {
 		case "bar":
 		case "bar2":
@@ -434,11 +434,11 @@ func shouldHaveSubcommands(t *testing.T, n string) {
 
 func shouldHaveOnlyHelpCommandWhenNoOtherArgDefined(t *testing.T, n string) {
 	ctx := context.Background()
-	cmd := cli.NewCommand("foo", ctx)
-	cmd.AddBoolArg(nil, nil)
-	config := cmd.Configure()
+	cmdBuilder := cli.NewCommand("foo", ctx)
+	cmdBuilder.AddBoolArg(nil, nil)
+	command := cmdBuilder.Build()
 
-	if len(config.Args) > 3 || (config.Args[1].Name != "help" && config.Args[2].Name != "version") {
+	if len(command.Args) > 3 || (command.Args[1].Name != "help" && command.Args[2].Name != "version") {
 		t.Fail()
 		t.Log(n + ": help arg not configured")
 	}

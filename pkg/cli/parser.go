@@ -7,18 +7,17 @@ import (
 	"strings"
 )
 
-func NewParser(a ArgSyntax, c CommandConfigurer) Parser {
+func NewParser(a ArgSyntax, c CommandBuilder) Parser {
 	return &parser{
 		argSyntax:      a,
-		configurer:     c,
+		builder:        c,
 		parsedCommands: []*parsedCommand{},
 	}
 }
 
 func (p *parser) Parse() (*parsedCommand, error) {
 	args := os.Args[1:]
-	config := p.configurer.Configure()
-	rootCmd := p.parseCommands(args, config)
+	rootCmd := p.parseCommands(args, p.builder.Build())
 
 	for _, cmd := range p.parsedCommands {
 		if argErr := p.parseArgs(cmd); argErr != nil {
@@ -34,7 +33,7 @@ func (p *parser) Parse() (*parsedCommand, error) {
 	return rootCmd, nil
 }
 
-func (p *parser) parseCommands(a []string, c *commandConfig) *parsedCommand {
+func (p *parser) parseCommands(a []string, c *command) *parsedCommand {
 	rootCmd := p.newParsedCommand(c)
 	p.parsedCommands = append(p.parsedCommands, rootCmd)
 	lastParsed := rootCmd
@@ -59,11 +58,11 @@ func (p *parser) parseCommands(a []string, c *commandConfig) *parsedCommand {
 	return rootCmd
 }
 
-func (p *parser) newParsedCommand(c *commandConfig) *parsedCommand {
+func (p *parser) newParsedCommand(c *command) *parsedCommand {
 	return &parsedCommand{
 		args:       []string{},
 		argConfigs: c.Args,
-		config:     c,
+		command:    c,
 		Context:    c.Context,
 		HelpFunc:   c.HelpFunc,
 		Name:       c.Name,
@@ -74,7 +73,7 @@ func (p *parser) newParsedCommand(c *commandConfig) *parsedCommand {
 
 func (p *parser) addParsedCommand(c *parsedCommand) {
 	for _, parsed := range p.parsedCommands {
-		if c.config.Parent == parsed.config {
+		if c.command.Parent == parsed.command {
 			parsed.Subcommands = append(parsed.Subcommands, c)
 		}
 	}
@@ -156,7 +155,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 	return nil
 }
 
-func (w *commandWalker) Walk(a string) *commandConfig {
+func (w *commandWalker) Walk(a string) *command {
 	for _, cmd := range w.path {
 		if a == cmd.Name {
 			w.updatePath(cmd)
@@ -168,8 +167,8 @@ func (w *commandWalker) Walk(a string) *commandConfig {
 	return nil
 }
 
-func (w *commandWalker) updatePath(c *commandConfig) {
-	walkablePath := append([]*commandConfig{}, c.Subcommands...)
+func (w *commandWalker) updatePath(c *command) {
+	walkablePath := append([]*command{}, c.Subcommands...)
 	parent := c.Parent
 
 	for parent != nil {
@@ -180,7 +179,7 @@ func (w *commandWalker) updatePath(c *commandConfig) {
 	w.path = walkablePath
 }
 
-func newWalker(c *commandConfig) *commandWalker {
+func newWalker(c *command) *commandWalker {
 	return &commandWalker{
 		root: c,
 		path: c.Subcommands,

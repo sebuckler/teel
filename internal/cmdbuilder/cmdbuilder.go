@@ -9,7 +9,7 @@ import (
 )
 
 type CommandBuilder interface {
-	Build() cli.CommandConfigurer
+	Build() cli.CommandBuilder
 }
 
 type commandBuilder struct {
@@ -24,7 +24,7 @@ func New(l logger.Logger, s scaffolder.Scaffolder) CommandBuilder {
 	}
 }
 
-func (c *commandBuilder) Build() cli.CommandConfigurer {
+func (c *commandBuilder) Build() cli.CommandBuilder {
 	var a bool
 	var b string
 	rootCmd := cli.NewCommand("teel", context.Background())

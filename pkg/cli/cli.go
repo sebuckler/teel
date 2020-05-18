@@ -114,20 +114,20 @@ type HelpFunc func(s ArgSyntax, w io.Writer) error
 
 type RunFunc func(ctx context.Context, o []string)
 
-type commandConfig struct {
+type command struct {
 	Args        []*argConfig
 	Context     context.Context
 	HelpFunc    HelpFunc
 	Name        string
-	Parent      *commandConfig
+	Parent      *command
 	Operands    []string
 	Run         RunFunc
-	Subcommands []*commandConfig
+	Subcommands []*command
 }
 
 type commandWalker struct {
-	root *commandConfig
-	path []*commandConfig
+	root *command
+	path []*command
 }
 
 type parsedArg struct {
@@ -139,19 +139,19 @@ type parsedArg struct {
 }
 
 type parsedCommand struct {
-	args         []string
-	argConfigs   []*argConfig
-	config       *commandConfig
-	Context      context.Context
-	HelpFunc     HelpFunc
-	HelpMode     bool
-	Name         string
-	Operands     []string
-	parsedArgs   []*parsedArg
-	Run          RunFunc
-	Subcommands  []*parsedCommand
-	Syntax       ArgSyntax
-	VersionMode  bool
+	args        []string
+	argConfigs  []*argConfig
+	command     *command
+	Context     context.Context
+	HelpFunc    HelpFunc
+	HelpMode    bool
+	Name        string
+	Operands    []string
+	parsedArgs  []*parsedArg
+	Run         RunFunc
+	Subcommands []*parsedCommand
+	Syntax      ArgSyntax
+	VersionMode bool
 }
 
 type argParserContext struct {
@@ -191,19 +191,19 @@ type argAdder interface {
 	AddUint64ListArg(p *[]uint64, a *ArgDefinition)
 }
 
-type CommandConfigurer interface {
-	AddSubcommand(c ...CommandConfigurer)
+type CommandBuilder interface {
+	AddSubcommand(c ...CommandBuilder)
 	AddRunFunc(r RunFunc)
 	argAdder
-	Configure() *commandConfig
+	Build() *command
 }
 
-type commandConfigurer struct {
+type commandBuilder struct {
 	args        *commandArgs
 	ctx         context.Context
 	name        string
 	run         RunFunc
-	subcommands []CommandConfigurer
+	subcommands []CommandBuilder
 }
 
 type Parser interface {
@@ -212,7 +212,7 @@ type Parser interface {
 
 type parser struct {
 	argSyntax      ArgSyntax
-	configurer     CommandConfigurer
+	builder        CommandBuilder
 	helpFunc       HelpFunc
 	helpMode       bool
 	parsedCommands []*parsedCommand
