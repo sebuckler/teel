@@ -159,7 +159,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 func (w *commandWalker) Walk(a string) *commandConfig {
 	for _, cmd := range w.path {
 		if a == cmd.Name {
-			w.updatePath(cmd.Subcommands)
+			w.updatePath(cmd)
 
 			return cmd
 		}
@@ -168,9 +168,16 @@ func (w *commandWalker) Walk(a string) *commandConfig {
 	return nil
 }
 
-func (w *commandWalker) updatePath(c []*commandConfig) {
-	newPath := append([]*commandConfig{}, c...)
-	w.path = append(newPath, w.path...)
+func (w *commandWalker) updatePath(c *commandConfig) {
+	walkablePath := append([]*commandConfig{}, c.Subcommands...)
+	parent := c.Parent
+
+	for parent != nil {
+		walkablePath = append(walkablePath, parent.Subcommands...)
+		parent = parent.Parent
+	}
+
+	w.path = walkablePath
 }
 
 func newWalker(c *commandConfig) *commandWalker {
