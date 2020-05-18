@@ -1,8 +1,8 @@
 package cli_test
 
 import (
+	"context"
 	"github.com/sebuckler/teel/pkg/cli"
-	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -40,7 +40,6 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 		"should error when required uint list opt has no opt-arg":    shouldErrorWhenRequiredUintListOptHasNoOptArg,
 		"should error when required uint64 opt has no opt-arg":       shouldErrorWhenRequiredUint64OptHasNoOptArg,
 		"should error when required uint64 list opt has no opt-arg":  shouldErrorWhenRequiredUint64ListOptHasNoOptArg,
-		"should error when unsupported arg type used":                shouldErrorWhenUnsupportedArgTypeUsed,
 		"should parse when operands provided correctly":              shouldParseWhenOperandsProvidedCorrectly,
 		"should parse when args provided correctly":                  shouldParseWhenPosixArgsProvidedCorrectly,
 	}
@@ -48,8 +47,9 @@ func getParserTestCases() map[string]func(t *testing.T, n string) {
 
 func shouldErrorWhenUnsupportedParseSyntaxUsed(t *testing.T, n string) {
 	os.Args = []string{"testcmd"}
-	parser := cli.NewParser(99)
-	_, err := parser.Parse(&cli.CommandConfig{})
+	cmd := cli.NewCommand("testcmd", context.Background())
+	parser := cli.NewParser(99, cmd)
+	_, err := parser.Parse()
 
 	if err == nil {
 		t.Fail()
@@ -59,15 +59,13 @@ func shouldErrorWhenUnsupportedParseSyntaxUsed(t *testing.T, n string) {
 
 func shouldParseSubcommands(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "foo", "bar"}
-	parser := cli.NewParser(cli.POSIX)
-	parsedCmd, err := parser.Parse(&cli.CommandConfig{
-		Subcommands: []*cli.CommandConfig{{
-			Name: "foo",
-			Subcommands: []*cli.CommandConfig{{
-				Name: "bar",
-			}}},
-		},
-	})
+	cmd := cli.NewCommand("testcmd", context.Background())
+	sub1 := cli.NewCommand("foo", context.Background())
+	sub2 := cli.NewCommand("bar", context.Background())
+	sub1.AddSubcommand(sub2)
+	cmd.AddSubcommand(sub1)
+	parser := cli.NewParser(cli.POSIX, cmd)
+	parsedCmd, err := parser.Parse()
 
 	if err != nil || len(parsedCmd.Subcommands) == 0 || len(parsedCmd.Subcommands[0].Subcommands) == 0 {
 		t.Fail()
@@ -77,23 +75,17 @@ func shouldParseSubcommands(t *testing.T, n string) {
 
 func shouldSetHelpModeTrueIfHelpArgExists(t *testing.T, n string) {
 	testCases := map[string]map[cli.ArgSyntax][][]string{
-		"GNU help added":   {cli.GNU: {{"testcmd", "--help"}, {"test", "-h"}}},
-		"POSIX help added": {cli.POSIX: {{"test", "-h"}}},
+		"GNU help added":   {cli.GNU: {{"testcmd", "--help"}, {"testcmd", "-h"}}},
+		"POSIX help added": {cli.POSIX: {{"testcmd", "-h"}}},
 	}
 
 	for name, test := range testCases {
 		for syntax, argSet := range test {
 			for _, args := range argSet {
 				os.Args = args
-				val := false
-				parser := cli.NewParser(syntax)
-				config := &cli.CommandConfig{
-					Args: []*cli.ArgConfig{{Name: "help", ShortName: 'h', Value: &val}},
-					HelpFunc: func(s cli.ArgSyntax, w io.Writer) error {
-						return nil
-					},
-				}
-				parsedCommand, err := parser.Parse(config)
+				cmd := cli.NewCommand("testcmd", context.Background())
+				parser := cli.NewParser(syntax, cmd)
+				parsedCommand, err := parser.Parse()
 
 				if err != nil || (parsedCommand != nil && !parsedCommand.HelpMode) {
 					t.Fail()
@@ -106,8 +98,9 @@ func shouldSetHelpModeTrueIfHelpArgExists(t *testing.T, n string) {
 
 func shouldErrorWhenArgPassedWithNoArgsConfigured(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "a"}
-	parser := cli.NewParser(cli.POSIX)
-	_, err := parser.Parse(&cli.CommandConfig{})
+	cmd := cli.NewCommand("testcmd", context.Background())
+	parser := cli.NewParser(cli.POSIX, cmd)
+	_, err := parser.Parse()
 
 	if err == nil {
 		t.Fail()
@@ -123,16 +116,18 @@ func shouldErrorWhenRepeatedArgIsNotRepeatable(t *testing.T, n string) {
 
 	for syntax, args := range testCases {
 		os.Args = args
-		parser := cli.NewParser(syntax)
-		a := true
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:       strings.ReplaceAll(args[1], "-", ""),
-				Repeatable: false,
-				ShortName:  rune(strings.ReplaceAll(args[1], "-", "")[0]),
-				Value:      &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+
+		for _, arg := range args {
+			val := false
+			cmd.AddBoolArg(&val, &cli.ArgDefinition{
+				Name:      strings.TrimLeft(arg, "-"),
+				ShortName: rune(strings.TrimLeft(arg, "-")[0]),
+			})
+		}
+
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -143,15 +138,11 @@ func shouldErrorWhenRepeatedArgIsNotRepeatable(t *testing.T, n string) {
 
 func shouldErrorWhenGnuFirstArgIsInvalidFormat(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "a"}
-	parser := cli.NewParser(cli.GNU)
-	a := false
-	_, err := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	cmd := cli.NewCommand("testcmd", context.Background())
+	val := false
+	cmd.AddBoolArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+	parser := cli.NewParser(cli.GNU, cmd)
+	_, err := parser.Parse()
 
 	if err == nil {
 		t.Fail()
@@ -168,15 +159,17 @@ func shouldErrorWhenConfiguredGnuArgNameIsInvalid(t *testing.T, n string) {
 
 	for name, args := range testCases {
 		os.Args = args
-		parser := cli.NewParser(cli.GNU)
-		a := false
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      strings.TrimPrefix(args[1], "--"),
-				ShortName: rune(strings.TrimPrefix(args[1], "--")[0]),
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+
+		for _, arg := range args {
+			val := false
+			cmd.AddBoolArg(&val, &cli.ArgDefinition{
+				Name:      strings.TrimLeft(arg, "-"),
+				ShortName: rune(strings.TrimLeft(arg, "-")[0]),
+			})
+		}
+		parser := cli.NewParser(cli.GNU, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -186,16 +179,12 @@ func shouldErrorWhenConfiguredGnuArgNameIsInvalid(t *testing.T, n string) {
 }
 
 func shouldErrorWhenGnuOptionalOptArgIsInvalidFormat(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "--alphabet", "abc"}
-	parser := cli.NewParser(cli.GNU)
-	a := "xyz"
-	_, err := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "alphabet",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	os.Args = []string{"testcmd", "--foo", "bar"}
+	cmd := cli.NewCommand("testcmd", context.Background())
+	val := "baz"
+	cmd.AddStringArg(&val, &cli.ArgDefinition{Name: "foo", ShortName: 'f'})
+	parser := cli.NewParser(cli.GNU, cmd)
+	_, err := parser.Parse()
 
 	if err == nil {
 		t.Fail()
@@ -205,15 +194,11 @@ func shouldErrorWhenGnuOptionalOptArgIsInvalidFormat(t *testing.T, n string) {
 
 func shouldErrorWhenPosixFirstArgIsInvalidFormat(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "a"}
-	parser := cli.NewParser(cli.POSIX)
-	a := false
-	_, err := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
+	cmd := cli.NewCommand("testcmd", context.Background())
+	val := false
+	cmd.AddBoolArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+	parser := cli.NewParser(cli.POSIX, cmd)
+	_, err := parser.Parse()
 
 	if err == nil {
 		t.Fail()
@@ -223,15 +208,11 @@ func shouldErrorWhenPosixFirstArgIsInvalidFormat(t *testing.T, n string) {
 
 func shouldErrorWhenConfiguredPosixArgNameIsInvalid(t *testing.T, n string) {
 	os.Args = []string{"testcmd", "-="}
-	parser := cli.NewParser(cli.POSIX)
-	a := false
-	_, err := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "=",
-			ShortName: '=',
-			Value:     &a,
-		}},
-	})
+	cmd := cli.NewCommand("testcmd", context.Background())
+	val := false
+	cmd.AddBoolArg(&val, &cli.ArgDefinition{Name: "=", ShortName: '='})
+	parser := cli.NewParser(cli.POSIX, cmd)
+	_, err := parser.Parse()
 
 	if err == nil {
 		t.Fail()
@@ -250,15 +231,11 @@ func shouldErrorWhenBoolOptHasOptArg(t *testing.T, n string) {
 
 	for syntaxName, test := range testCases {
 		os.Args = []string{"testcmd", test.arg, "value"}
-		parser := cli.NewParser(test.syntax)
-		a := false
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := false
+		cmd.AddBoolArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(test.syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -275,15 +252,11 @@ func shouldErrorWhenRequiredFloat64OptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := float64(1)
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := float64(1)
+		cmd.AddFloat64Arg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -300,15 +273,11 @@ func shouldErrorWhenRequiredFloat64ListOptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := []float64{1}
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := []float64{1}
+		cmd.AddFloat64ListArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -325,15 +294,11 @@ func shouldErrorWhenRequiredIntOptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := 1
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := 1
+		cmd.AddIntArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -350,15 +315,11 @@ func shouldErrorWhenRequiredIntListOptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := []int{1}
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := []int{1}
+		cmd.AddIntListArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -375,15 +336,11 @@ func shouldErrorWhenRequiredInt64OptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := int64(1)
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := int64(1)
+		cmd.AddInt64Arg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -400,15 +357,11 @@ func shouldErrorWhenRequiredInt64ListOptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := []int64{1}
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := []int64{1}
+		cmd.AddInt64ListArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -425,15 +378,11 @@ func shouldErrorWhenRequiredStringOptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := "value"
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := "value"
+		cmd.AddStringArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -450,15 +399,11 @@ func shouldErrorWhenRequiredStringListOptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := []string{"value"}
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := []string{"value"}
+		cmd.AddStringListArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -475,15 +420,11 @@ func shouldErrorWhenRequiredUintOptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := uint(1)
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := uint(1)
+		cmd.AddUintArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -500,15 +441,11 @@ func shouldErrorWhenRequiredUintListOptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := []uint{1}
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := []uint{1}
+		cmd.AddUintListArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -525,15 +462,11 @@ func shouldErrorWhenRequiredUint64OptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := uint64(1)
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := uint64(1)
+		cmd.AddUint64Arg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
@@ -550,38 +483,16 @@ func shouldErrorWhenRequiredUint64ListOptHasNoOptArg(t *testing.T, n string) {
 
 	for syntaxName, syntax := range testCases {
 		os.Args = []string{"testcmd", "-a"}
-		parser := cli.NewParser(syntax)
-		a := []uint64{1}
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      "a",
-				ShortName: 'a',
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		val := []uint64{1}
+		cmd.AddUint64ListArg(&val, &cli.ArgDefinition{Name: "a", ShortName: 'a'})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err == nil {
 			t.Fail()
 			t.Log(n + ": did not error on missing " + syntaxName + " uint64 list option-argument")
 		}
-	}
-}
-
-func shouldErrorWhenUnsupportedArgTypeUsed(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "-a", "1"}
-	parser := cli.NewParser(cli.POSIX)
-	a := byte(1)
-	_, err := parser.Parse(&cli.CommandConfig{
-		Args: []*cli.ArgConfig{{
-			Name:      "a",
-			ShortName: 'a',
-			Value:     &a,
-		}},
-	})
-
-	if err == nil {
-		t.Fail()
-		t.Log(n + ": did not error on unsupported arg type")
 	}
 }
 
@@ -593,15 +504,12 @@ func shouldParseWhenOperandsProvidedCorrectly(t *testing.T, n string) {
 
 	for syntax, args := range testCases {
 		os.Args = args
-		parser := cli.NewParser(syntax)
-		a := false
-		_, err := parser.Parse(&cli.CommandConfig{
-			Args: []*cli.ArgConfig{{
-				Name:      strings.ReplaceAll(args[1], "-", ""),
-				ShortName: rune(strings.ReplaceAll(args[1], "-", "")[0]),
-				Value:     &a,
-			}},
-		})
+		cmd := cli.NewCommand("testcmd", context.Background())
+		option := strings.TrimLeft(args[1], "-")
+		val := false
+		cmd.AddBoolArg(&val, &cli.ArgDefinition{Name: option, ShortName: rune(option[0])})
+		parser := cli.NewParser(syntax, cmd)
+		_, err := parser.Parse()
 
 		if err != nil {
 			t.Fail()
@@ -635,13 +543,13 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for _, name := range *argNames {
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: &val})
+						cmd.AddBoolArg(&val, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -668,16 +576,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := float64(i)
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddFloat64Arg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						vals[val+1] = bindVal
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -716,16 +624,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := []float64{float64(i)}
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddFloat64ListArg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						results = append(results, result{[]float64{float64((i * 2) + 1), float64((i * 2) + 2)}, bindVal})
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -762,16 +670,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := i
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddIntArg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						vals[val+1] = bindVal
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -810,16 +718,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := []int{i}
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddIntListArg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						results = append(results, result{[]int{(i * 2) + 1, (i * 2) + 2}, bindVal})
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -856,16 +764,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := int64(i)
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddInt64Arg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						vals[val+1] = bindVal
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -904,16 +812,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := []int64{int64(i)}
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddInt64ListArg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						results = append(results, result{[]int64{int64((i * 2) + 1), int64((i * 2) + 2)}, bindVal})
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -950,16 +858,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := strconv.Itoa(i + 1)
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddStringArg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						vals[*bindVal] = bindVal
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -998,19 +906,19 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := []string{strconv.Itoa(i + 1)}
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddStringListArg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						results = append(
 							results,
 							result{[]string{strconv.Itoa((i * 2) + 1), strconv.Itoa((i * 2) + 2)}, bindVal},
 						)
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -1047,16 +955,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := uint(i)
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddUintArg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						vals[val+1] = bindVal
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -1095,16 +1003,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := []uint{uint(i)}
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddUintListArg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						results = append(results, result{[]uint{uint((i * 2) + 1), uint((i * 2) + 2)}, bindVal})
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -1141,16 +1049,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := uint64(i)
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddUint64Arg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						vals[val+1] = bindVal
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}
@@ -1189,16 +1097,16 @@ func shouldParseWhenPosixArgsProvidedCorrectly(t *testing.T, n string) {
 			for syntax, argSets := range tests {
 				for argNames, args := range argSets {
 					os.Args = args
-					var configs []*cli.ArgConfig
+					cmd := cli.NewCommand("testcmd", context.Background())
 
 					for i, name := range *argNames {
 						val := []uint64{uint64(i)}
 						bindVal := &val
-						configs = append(configs, &cli.ArgConfig{Name: name, ShortName: rune(name[0]), Value: bindVal})
+						cmd.AddUint64ListArg(bindVal, &cli.ArgDefinition{Name: name, ShortName: rune(name[0])})
 						results = append(results, result{[]uint64{uint64((i * 2) + 1), uint64((i * 2) + 2)}, bindVal})
 					}
 
-					if _, err := cli.NewParser(syntax).Parse(&cli.CommandConfig{Args: configs}); err != nil {
+					if _, err := cli.NewParser(syntax, cmd).Parse(); err != nil {
 						errs = append(errs, err)
 					}
 				}

@@ -1,38 +1,45 @@
 package executor
 
 import (
-	"github.com/sebuckler/teel/internal/cmdbuilder"
 	"github.com/sebuckler/teel/internal/logger"
 	"github.com/sebuckler/teel/pkg/cli"
+	"os"
+	"os/signal"
 )
 
 type Executor interface {
-	Execute() error
+	Execute()
 }
 
 type executor struct {
-	cmdBuilder cmdbuilder.CommandBuilder
-	logger     logger.Logger
-	parser     cli.Parser
-	runner     cli.Runner
+	logger logger.Logger
+	runner cli.Runner
 }
 
-func New(c cmdbuilder.CommandBuilder, l logger.Logger, p cli.Parser, r cli.Runner) Executor {
+func New(l logger.Logger, r cli.Runner) Executor {
 	return &executor{
-		cmdBuilder: c,
-		logger:     l,
-		parser:     p,
-		runner:     r,
+		logger: l,
+		runner: r,
 	}
 }
 
-func (e *executor) Execute() error {
-	cmd := e.cmdBuilder.Build()
-	parsedCmd, parseErr := e.parser.Parse(cmd.Configure())
+func (e *executor) Execute() {
+	sigChan := make(chan os.Signal, 1)
+	done := make(chan error, 1)
 
-	if parseErr != nil {
-		return parseErr
+	signal.Notify(sigChan, os.Interrupt, os.Kill)
+
+	go func() {
+		<-sigChan
+		done <- nil
+	}()
+
+	go func() {
+		done <- e.runner.Run()
+	}()
+
+	if err := <-done; err != nil {
+		e.logger.Errorf("Error: %v\n", err)
+		os.Exit(1)
 	}
-
-	return e.runner.Run(parsedCmd)
 }

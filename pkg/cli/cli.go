@@ -12,14 +12,6 @@ const (
 	POSIX
 )
 
-type ArgDefinition struct {
-	Name       string
-	ShortName  rune
-	UsageText  string
-	Repeatable bool
-	Required   bool
-}
-
 type commandArg struct {
 	name       string
 	shortName  rune
@@ -109,9 +101,7 @@ type commandArgs struct {
 	uint64ListArgs  []*uint64ListArg
 }
 
-type CommandRunFunc func(ctx context.Context, o []string)
-
-type ArgConfig struct {
+type argConfig struct {
 	Name       string
 	Repeatable bool
 	Required   bool
@@ -122,14 +112,16 @@ type ArgConfig struct {
 
 type HelpFunc func(s ArgSyntax, w io.Writer) error
 
-type CommandConfig struct {
-	Args        []*ArgConfig
+type RunFunc func(ctx context.Context, o []string)
+
+type commandConfig struct {
+	Args        []*argConfig
 	Context     context.Context
 	HelpFunc    HelpFunc
 	Name        string
 	Operands    []string
-	Run         CommandRunFunc
-	Subcommands []*CommandConfig
+	Run         RunFunc
+	Subcommands []*commandConfig
 }
 
 type parsedArg struct {
@@ -140,24 +132,23 @@ type parsedArg struct {
 	value    []string
 }
 
-type ParsedCommand struct {
+type parsedCommand struct {
 	args        []string
-	argConfigs  []*ArgConfig
+	argConfigs  []*argConfig
 	Context     context.Context
 	HelpFunc    HelpFunc
 	HelpMode    bool
 	Name        string
 	Operands    []string
-	parentCmd   string
 	parsedArgs  []*parsedArg
-	Run         CommandRunFunc
-	Subcommands []*ParsedCommand
+	Run         RunFunc
+	Subcommands []*parsedCommand
 	Syntax      ArgSyntax
 	VersionMode bool
 }
 
 type argParserContext struct {
-	argConfigs      []*ArgConfig
+	argConfigs      []*argConfig
 	lastParsedArg   *parsedArg
 	operands        []string
 	parsedArgs      []*parsedArg
@@ -169,7 +160,15 @@ type argParserRule func(a *string, i int, c *argParserContext) (bool, error)
 
 type argParserInit func(a []string) *argParserContext
 
-type ArgAdder interface {
+type ArgDefinition struct {
+	Name       string
+	ShortName  rune
+	UsageText  string
+	Repeatable bool
+	Required   bool
+}
+
+type argAdder interface {
 	AddBoolArg(p *bool, a *ArgDefinition)
 	AddFloat64Arg(p *float64, a *ArgDefinition)
 	AddFloat64ListArg(p *[]float64, a *ArgDefinition)
@@ -186,36 +185,38 @@ type ArgAdder interface {
 }
 
 type CommandConfigurer interface {
-	AddSubcommand(c CommandConfigurer)
-	AddRunFunc(r CommandRunFunc)
-	ArgAdder
-	Configure() *CommandConfig
+	AddSubcommand(c ...CommandConfigurer)
+	AddRunFunc(r RunFunc)
+	argAdder
+	Configure() *commandConfig
 }
 
 type commandConfigurer struct {
 	args        *commandArgs
 	ctx         context.Context
 	name        string
-	run         CommandRunFunc
+	run         RunFunc
 	subcommands []CommandConfigurer
 }
 
 type Parser interface {
-	Parse(c *CommandConfig) (*ParsedCommand, error)
+	Parse() (*parsedCommand, error)
 }
 
 type parser struct {
 	argSyntax      ArgSyntax
+	configurer     CommandConfigurer
 	helpFunc       HelpFunc
 	helpMode       bool
-	parsedCommands []*ParsedCommand
+	parsedCommands []*parsedCommand
 }
 
 type Runner interface {
-	Run(p *ParsedCommand) error
+	Run() error
 }
 
 type runner struct {
+	parser  Parser
 	version string
 	writer  io.Writer
 }

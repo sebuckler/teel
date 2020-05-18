@@ -7,18 +7,20 @@ import (
 	"strings"
 )
 
-func NewParser(a ArgSyntax) Parser {
+func NewParser(a ArgSyntax, c CommandConfigurer) Parser {
 	return &parser{
 		argSyntax:      a,
-		parsedCommands: []*ParsedCommand{},
+		configurer:     c,
+		parsedCommands: []*parsedCommand{},
 	}
 }
 
-func (p *parser) Parse(c *CommandConfig) (*ParsedCommand, error) {
+func (p *parser) Parse() (*parsedCommand, error) {
 	args := os.Args[1:]
-	rootCmd := p.parseRootCmd(c)
+	config := p.configurer.Configure()
+	rootCmd := p.parseRootCmd(config)
 	p.parsedCommands = append(p.parsedCommands, rootCmd)
-	p.parseSubcommands(args, c, rootCmd)
+	p.parseSubcommands(args, config, 0)
 
 	for _, cmd := range p.parsedCommands {
 		if argErr := p.parseArgs(cmd); argErr != nil {
@@ -34,8 +36,8 @@ func (p *parser) Parse(c *CommandConfig) (*ParsedCommand, error) {
 	return rootCmd, nil
 }
 
-func (p *parser) parseRootCmd(c *CommandConfig) *ParsedCommand {
-	return &ParsedCommand{
+func (p *parser) parseRootCmd(c *commandConfig) *parsedCommand {
+	return &parsedCommand{
 		args:       []string{},
 		argConfigs: c.Args,
 		Context:    c.Context,
@@ -46,40 +48,36 @@ func (p *parser) parseRootCmd(c *CommandConfig) *ParsedCommand {
 	}
 }
 
-func (p *parser) parseSubcommands(a []string, c *CommandConfig, l *ParsedCommand) bool {
-	if len(a) == 0 || l == nil {
+func (p *parser) parseSubcommands(a []string, c *commandConfig, i int) bool {
+	if len(a) == 0 {
 		return true
 	}
 
 	arg := a[0]
 	argMapped := false
-	var lastParsedCmd *ParsedCommand
+	lastParsedCmd := p.parsedCommands[i]
 
 	for _, cmd := range c.Subcommands {
 		if arg == cmd.Name {
-			parsedCmd := &ParsedCommand{
+			parsedCmd := &parsedCommand{
 				argConfigs: cmd.Args,
 				Context:    cmd.Context,
 				HelpFunc:   cmd.HelpFunc,
 				Name:       cmd.Name,
-				parentCmd:  c.Name,
 				Run:        cmd.Run,
 			}
 			p.parsedCommands = append(p.parsedCommands, parsedCmd)
-			l.Subcommands = append(l.Subcommands, parsedCmd)
-			lastParsedCmd = parsedCmd
+			lastParsedCmd.Subcommands = append(lastParsedCmd.Subcommands, parsedCmd)
 			argMapped = true
 
 			break
 		}
 
-		if l.Name == cmd.Name && len(cmd.Subcommands) > 0 {
-			argMapped = p.parseSubcommands(a, cmd, l)
+		for index := len(p.parsedCommands); index > 0; index-- {
+			if p.parsedCommands[index-1].Name == cmd.Name && len(cmd.Subcommands) > 0 {
+				argMapped = p.parseSubcommands(a, cmd, index-1)
+			}
 		}
-	}
-
-	if lastParsedCmd == nil {
-		lastParsedCmd = l
 	}
 
 	if !argMapped {
@@ -90,10 +88,10 @@ func (p *parser) parseSubcommands(a []string, c *CommandConfig, l *ParsedCommand
 		return true
 	}
 
-	return p.parseSubcommands(a[1:], c, lastParsedCmd)
+	return p.parseSubcommands(a[1:], c, i)
 }
 
-func (p *parser) parseArgs(c *ParsedCommand) error {
+func (p *parser) parseArgs(c *parsedCommand) error {
 	switch p.argSyntax {
 	case GNU:
 		return p.parseArgRules(c, getGnuRules(), getPosixArgParserContext)
@@ -104,7 +102,7 @@ func (p *parser) parseArgs(c *ParsedCommand) error {
 	}
 }
 
-func (p *parser) parseArgRules(c *ParsedCommand, r []argParserRule, i argParserInit) error {
+func (p *parser) parseArgRules(c *parsedCommand, r []argParserRule, i argParserInit) error {
 	if len(c.args) == 0 {
 		return nil
 	}
@@ -141,7 +139,7 @@ func (p *parser) parseArgRules(c *ParsedCommand, r []argParserRule, i argParserI
 	return p.bindArgs(c)
 }
 
-func (p *parser) bindArgs(c *ParsedCommand) error {
+func (p *parser) bindArgs(c *parsedCommand) error {
 	if len(c.parsedArgs) == 0 {
 		return nil
 	}
@@ -371,7 +369,7 @@ func checkPosixArgIsOptionArgument(a *string, _ int, c *argParserContext) (bool,
 	return false, nil
 }
 
-func updateArgParserContext(a *ArgConfig, o string, r string, c *argParserContext) {
+func updateArgParserContext(a *argConfig, o string, r string, c *argParserContext) {
 	pArg := &parsedArg{
 		bindVal:  a.Value,
 		name:     o,
