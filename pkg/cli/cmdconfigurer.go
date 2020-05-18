@@ -126,7 +126,7 @@ func (c *commandConfigurer) Configure() *commandConfig {
 	argConfigs := c.configureArgs()
 	subcmdConfigs := c.configureSubcommands()
 
-	return &commandConfig{
+	config := &commandConfig{
 		Args:        argConfigs,
 		Context:     c.ctx,
 		HelpFunc:    c.configureHelpFunc(argConfigs, subcmdConfigs),
@@ -134,6 +134,12 @@ func (c *commandConfigurer) Configure() *commandConfig {
 		Run:         c.run,
 		Subcommands: subcmdConfigs,
 	}
+
+	for _, subCmd := range config.Subcommands {
+		subCmd.Parent = config
+	}
+
+	return config
 }
 
 func (c *commandConfigurer) configureArgs() []*argConfig {

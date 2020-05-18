@@ -18,9 +18,7 @@ func NewParser(a ArgSyntax, c CommandConfigurer) Parser {
 func (p *parser) Parse() (*parsedCommand, error) {
 	args := os.Args[1:]
 	config := p.configurer.Configure()
-	rootCmd := p.parseRootCmd(config)
-	p.parsedCommands = append(p.parsedCommands, rootCmd)
-	p.parseSubcommands(args, config, 0)
+	rootCmd := p.parseCommands(args, config)
 
 	for _, cmd := range p.parsedCommands {
 		if argErr := p.parseArgs(cmd); argErr != nil {
@@ -36,10 +34,36 @@ func (p *parser) Parse() (*parsedCommand, error) {
 	return rootCmd, nil
 }
 
-func (p *parser) parseRootCmd(c *commandConfig) *parsedCommand {
+func (p *parser) parseCommands(a []string, c *commandConfig) *parsedCommand {
+	rootCmd := p.newParsedCommand(c)
+	p.parsedCommands = append(p.parsedCommands, rootCmd)
+	lastParsed := rootCmd
+	walker := newWalker(c)
+
+	if len(a) == 0 {
+		return rootCmd
+	}
+
+	for _, arg := range a {
+		if found := walker.Walk(arg); found != nil {
+			parsed := p.newParsedCommand(found)
+			p.addParsedCommand(parsed)
+			lastParsed = parsed
+
+			continue
+		}
+
+		lastParsed.args = append(lastParsed.args, arg)
+	}
+
+	return rootCmd
+}
+
+func (p *parser) newParsedCommand(c *commandConfig) *parsedCommand {
 	return &parsedCommand{
 		args:       []string{},
 		argConfigs: c.Args,
+		config:     c,
 		Context:    c.Context,
 		HelpFunc:   c.HelpFunc,
 		Name:       c.Name,
@@ -48,47 +72,14 @@ func (p *parser) parseRootCmd(c *commandConfig) *parsedCommand {
 	}
 }
 
-func (p *parser) parseSubcommands(a []string, c *commandConfig, i int) bool {
-	if len(a) == 0 {
-		return true
-	}
-
-	arg := a[0]
-	argMapped := false
-	lastParsedCmd := p.parsedCommands[i]
-
-	for _, cmd := range c.Subcommands {
-		if arg == cmd.Name {
-			parsedCmd := &parsedCommand{
-				argConfigs: cmd.Args,
-				Context:    cmd.Context,
-				HelpFunc:   cmd.HelpFunc,
-				Name:       cmd.Name,
-				Run:        cmd.Run,
-			}
-			p.parsedCommands = append(p.parsedCommands, parsedCmd)
-			lastParsedCmd.Subcommands = append(lastParsedCmd.Subcommands, parsedCmd)
-			argMapped = true
-
-			break
-		}
-
-		for index := len(p.parsedCommands); index > 0; index-- {
-			if p.parsedCommands[index-1].Name == cmd.Name && len(cmd.Subcommands) > 0 {
-				argMapped = p.parseSubcommands(a, cmd, index-1)
-			}
+func (p *parser) addParsedCommand(c *parsedCommand) {
+	for _, parsed := range p.parsedCommands {
+		if c.config.Parent == parsed.config {
+			parsed.Subcommands = append(parsed.Subcommands, c)
 		}
 	}
 
-	if !argMapped {
-		lastParsedCmd.args = append(lastParsedCmd.args, arg)
-	}
-
-	if len(a) == 1 {
-		return true
-	}
-
-	return p.parseSubcommands(a[1:], c, i)
+	p.parsedCommands = append(p.parsedCommands, c)
 }
 
 func (p *parser) parseArgs(c *parsedCommand) error {
@@ -163,6 +154,30 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 	}
 
 	return nil
+}
+
+func (w *commandWalker) Walk(a string) *commandConfig {
+	for _, cmd := range w.path {
+		if a == cmd.Name {
+			w.updatePath(cmd.Subcommands)
+
+			return cmd
+		}
+	}
+
+	return nil
+}
+
+func (w *commandWalker) updatePath(c []*commandConfig) {
+	newPath := append([]*commandConfig{}, c...)
+	w.path = append(newPath, w.path...)
+}
+
+func newWalker(c *commandConfig) *commandWalker {
+	return &commandWalker{
+		root: c,
+		path: c.Subcommands,
+	}
 }
 
 func getGnuRules() []argParserRule {

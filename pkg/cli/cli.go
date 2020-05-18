@@ -119,9 +119,15 @@ type commandConfig struct {
 	Context     context.Context
 	HelpFunc    HelpFunc
 	Name        string
+	Parent      *commandConfig
 	Operands    []string
 	Run         RunFunc
 	Subcommands []*commandConfig
+}
+
+type commandWalker struct {
+	root *commandConfig
+	path []*commandConfig
 }
 
 type parsedArg struct {
@@ -133,18 +139,19 @@ type parsedArg struct {
 }
 
 type parsedCommand struct {
-	args        []string
-	argConfigs  []*argConfig
-	Context     context.Context
-	HelpFunc    HelpFunc
-	HelpMode    bool
-	Name        string
-	Operands    []string
-	parsedArgs  []*parsedArg
-	Run         RunFunc
-	Subcommands []*parsedCommand
-	Syntax      ArgSyntax
-	VersionMode bool
+	args         []string
+	argConfigs   []*argConfig
+	config       *commandConfig
+	Context      context.Context
+	HelpFunc     HelpFunc
+	HelpMode     bool
+	Name         string
+	Operands     []string
+	parsedArgs   []*parsedArg
+	Run          RunFunc
+	Subcommands  []*parsedCommand
+	Syntax       ArgSyntax
+	VersionMode  bool
 }
 
 type argParserContext struct {
