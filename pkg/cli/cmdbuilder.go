@@ -23,115 +23,115 @@ func NewCommand(n string, c context.Context) CommandBuilder {
 	}
 }
 
-func (c *commandBuilder) AddRunFunc(r RunFunc) {
-	c.run = r
+func (b *commandBuilder) AddRunFunc(r RunFunc) {
+	b.run = r
 }
 
-func (c *commandBuilder) AddSubcommand(cmd ...CommandBuilder) {
-	c.subcommands = append(c.subcommands, cmd...)
+func (b *commandBuilder) AddSubcommand(cmd ...CommandBuilder) {
+	b.subcommands = append(b.subcommands, cmd...)
 }
 
-func (c *commandBuilder) AddBoolArg(p *bool, a *ArgDefinition) {
-	c.args.boolArgs = append(c.args.boolArgs, &boolArg{
+func (b *commandBuilder) AddBoolArg(p *bool, a *ArgDefinition) {
+	b.args.boolArgs = append(b.args.boolArgs, &boolArg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddFloat64Arg(p *float64, a *ArgDefinition) {
-	c.args.float64Args = append(c.args.float64Args, &float64Arg{
+func (b *commandBuilder) AddFloat64Arg(p *float64, a *ArgDefinition) {
+	b.args.float64Args = append(b.args.float64Args, &float64Arg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddFloat64ListArg(p *[]float64, a *ArgDefinition) {
-	c.args.float64ListArgs = append(c.args.float64ListArgs, &float64ListArg{
+func (b *commandBuilder) AddFloat64ListArg(p *[]float64, a *ArgDefinition) {
+	b.args.float64ListArgs = append(b.args.float64ListArgs, &float64ListArg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddIntArg(p *int, a *ArgDefinition) {
-	c.args.intArgs = append(c.args.intArgs, &intArg{
+func (b *commandBuilder) AddIntArg(p *int, a *ArgDefinition) {
+	b.args.intArgs = append(b.args.intArgs, &intArg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddIntListArg(p *[]int, a *ArgDefinition) {
-	c.args.intListArgs = append(c.args.intListArgs, &intListArg{
+func (b *commandBuilder) AddIntListArg(p *[]int, a *ArgDefinition) {
+	b.args.intListArgs = append(b.args.intListArgs, &intListArg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddInt64Arg(p *int64, a *ArgDefinition) {
-	c.args.int64Args = append(c.args.int64Args, &int64Arg{
+func (b *commandBuilder) AddInt64Arg(p *int64, a *ArgDefinition) {
+	b.args.int64Args = append(b.args.int64Args, &int64Arg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddInt64ListArg(p *[]int64, a *ArgDefinition) {
-	c.args.int64ListArgs = append(c.args.int64ListArgs, &int64ListArg{
+func (b *commandBuilder) AddInt64ListArg(p *[]int64, a *ArgDefinition) {
+	b.args.int64ListArgs = append(b.args.int64ListArgs, &int64ListArg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddStringArg(p *string, a *ArgDefinition) {
-	c.args.stringArgs = append(c.args.stringArgs, &stringArg{
+func (b *commandBuilder) AddStringArg(p *string, a *ArgDefinition) {
+	b.args.stringArgs = append(b.args.stringArgs, &stringArg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddStringListArg(p *[]string, a *ArgDefinition) {
-	c.args.stringListArgs = append(c.args.stringListArgs, &stringListArg{
+func (b *commandBuilder) AddStringListArg(p *[]string, a *ArgDefinition) {
+	b.args.stringListArgs = append(b.args.stringListArgs, &stringListArg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddUintArg(p *uint, a *ArgDefinition) {
-	c.args.uintArgs = append(c.args.uintArgs, &uintArg{
+func (b *commandBuilder) AddUintArg(p *uint, a *ArgDefinition) {
+	b.args.uintArgs = append(b.args.uintArgs, &uintArg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddUintListArg(p *[]uint, a *ArgDefinition) {
-	c.args.uintListArgs = append(c.args.uintListArgs, &uintListArg{
+func (b *commandBuilder) AddUintListArg(p *[]uint, a *ArgDefinition) {
+	b.args.uintListArgs = append(b.args.uintListArgs, &uintListArg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddUint64Arg(p *uint64, a *ArgDefinition) {
-	c.args.uint64Args = append(c.args.uint64Args, &uint64Arg{
+func (b *commandBuilder) AddUint64Arg(p *uint64, a *ArgDefinition) {
+	b.args.uint64Args = append(b.args.uint64Args, &uint64Arg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) AddUint64ListArg(p *[]uint64, a *ArgDefinition) {
-	c.args.uint64ListArgs = append(c.args.uint64ListArgs, &uint64ListArg{
+func (b *commandBuilder) AddUint64ListArg(p *[]uint64, a *ArgDefinition) {
+	b.args.uint64ListArgs = append(b.args.uint64ListArgs, &uint64ListArg{
 		commandArg: newCommandArg(a),
 		value:      p,
 	})
 }
 
-func (c *commandBuilder) Build() *command {
-	argConfigs := c.configureArgs()
-	subcommands := c.configureSubcommands()
+func (b *commandBuilder) Build() *command {
+	argConfigs := b.configureArgs()
+	subcommands := b.configureSubcommands()
 
 	command := &command{
 		Args:        argConfigs,
-		Context:     c.ctx,
-		HelpFunc:    c.configureHelpFunc(argConfigs, subcommands),
-		Name:        c.name,
-		Run:         c.run,
+		Context:     b.ctx,
+		HelpFunc:    b.configureHelpFunc(argConfigs),
+		Name:        b.name,
+		Run:         b.run,
 		Subcommands: subcommands,
 	}
 
@@ -142,24 +142,24 @@ func (c *commandBuilder) Build() *command {
 	return command
 }
 
-func (c *commandBuilder) configureArgs() []*argConfig {
+func (b *commandBuilder) configureArgs() []*argConfig {
 	var argConfigs []*argConfig
 	helpArgConfigExists := false
 	versionArgExists := false
 
-	argConfigs = append(argConfigs, c.configureBoolArgs()...)
-	argConfigs = append(argConfigs, c.configureFloat64Args()...)
-	argConfigs = append(argConfigs, c.configureFloat64ListArgs()...)
-	argConfigs = append(argConfigs, c.configureIntArgs()...)
-	argConfigs = append(argConfigs, c.configureIntListArgs()...)
-	argConfigs = append(argConfigs, c.configureInt64Args()...)
-	argConfigs = append(argConfigs, c.configureInt64ListArgs()...)
-	argConfigs = append(argConfigs, c.configureStringArgs()...)
-	argConfigs = append(argConfigs, c.configureStringListArgs()...)
-	argConfigs = append(argConfigs, c.configureUintArgs()...)
-	argConfigs = append(argConfigs, c.configureUintListArgs()...)
-	argConfigs = append(argConfigs, c.configureUint64Args()...)
-	argConfigs = append(argConfigs, c.configureUint64ListArgs()...)
+	argConfigs = append(argConfigs, b.configureBoolArgs()...)
+	argConfigs = append(argConfigs, b.configureFloat64Args()...)
+	argConfigs = append(argConfigs, b.configureFloat64ListArgs()...)
+	argConfigs = append(argConfigs, b.configureIntArgs()...)
+	argConfigs = append(argConfigs, b.configureIntListArgs()...)
+	argConfigs = append(argConfigs, b.configureInt64Args()...)
+	argConfigs = append(argConfigs, b.configureInt64ListArgs()...)
+	argConfigs = append(argConfigs, b.configureStringArgs()...)
+	argConfigs = append(argConfigs, b.configureStringListArgs()...)
+	argConfigs = append(argConfigs, b.configureUintArgs()...)
+	argConfigs = append(argConfigs, b.configureUintListArgs()...)
+	argConfigs = append(argConfigs, b.configureUint64Args()...)
+	argConfigs = append(argConfigs, b.configureUint64ListArgs()...)
 
 	for _, argConfig := range argConfigs {
 		if argConfig.Name == "help" || argConfig.Name == "h" || argConfig.ShortName == 'h' {
@@ -196,36 +196,48 @@ func (c *commandBuilder) configureArgs() []*argConfig {
 	return argConfigs
 }
 
-func (c *commandBuilder) configureHelpFunc(a []*argConfig, s []*command) func(s ArgSyntax, w io.Writer) error {
-	return func(syntax ArgSyntax, w io.Writer) error {
-		_, err := w.Write([]byte(c.getHelpTemplate(a, s, syntax)))
+func (b *commandBuilder) configureHelpFunc(a []*argConfig) HelpFunc {
+	return func(c *command, s ArgSyntax, w io.Writer) error {
+		_, err := w.Write([]byte(b.getHelpTemplate(c, s, a)))
 
 		return err
 	}
 }
 
-func (c *commandBuilder) getHelpTemplate(a []*argConfig, s []*command, syntax ArgSyntax) string {
+func (b *commandBuilder) getHelpTemplate(c *command, s ArgSyntax, a []*argConfig) string {
 	var helpBuilder strings.Builder
+	parent := c.Parent
+	var parentNames []string
+	var parentUsage string
 	longestArgLine := float64(0)
 	var argLines [][]string
 
-	helpBuilder.WriteString(`Usage:
-    ` + c.name)
+	for parent != nil {
+		parentNames = append(parentNames, c.Parent.Name)
+		parent = parent.Parent
+	}
 
-	if len(s) > 0 {
+	if len(parentNames) > 0 {
+		parentUsage = strings.Join(parentNames, " ") + " "
+	}
+
+	helpBuilder.WriteString(`Usage:
+    ` + parentUsage + b.name)
+
+	if len(c.Subcommands) > 0 {
 		helpBuilder.WriteString(` [command]
 
 Commands:
-    `)
+`)
 	}
 
-	for _, cmd := range s {
-		helpBuilder.WriteString(cmd.Name + `
-    `)
+	for _, cmd := range c.Subcommands {
+		helpBuilder.WriteString(strings.Repeat(" ", 4) + cmd.Name)
 	}
 
 	if len(a) > 0 {
 		helpBuilder.WriteString(`
+
 Options:
     `)
 	}
@@ -233,7 +245,7 @@ Options:
 	for _, arg := range a {
 		argLine := ""
 
-		switch syntax {
+		switch s {
 		case GNU:
 			if arg.ShortName > 0 {
 				argLine = "-" + string(arg.ShortName) + ", "
@@ -278,10 +290,10 @@ Options:
 	return helpBuilder.String()
 }
 
-func (c *commandBuilder) configureBoolArgs() []*argConfig {
+func (b *commandBuilder) configureBoolArgs() []*argConfig {
 	var boolArgConfigs []*argConfig
 
-	for _, arg := range c.args.boolArgs {
+	for _, arg := range b.args.boolArgs {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		boolArgConfigs = append(boolArgConfigs, argConfig)
 	}
@@ -289,10 +301,10 @@ func (c *commandBuilder) configureBoolArgs() []*argConfig {
 	return boolArgConfigs
 }
 
-func (c *commandBuilder) configureFloat64Args() []*argConfig {
+func (b *commandBuilder) configureFloat64Args() []*argConfig {
 	var float64ArgConfigs []*argConfig
 
-	for _, arg := range c.args.float64Args {
+	for _, arg := range b.args.float64Args {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		float64ArgConfigs = append(float64ArgConfigs, argConfig)
 	}
@@ -300,10 +312,10 @@ func (c *commandBuilder) configureFloat64Args() []*argConfig {
 	return float64ArgConfigs
 }
 
-func (c *commandBuilder) configureFloat64ListArgs() []*argConfig {
+func (b *commandBuilder) configureFloat64ListArgs() []*argConfig {
 	var float64ListArgConfigs []*argConfig
 
-	for _, arg := range c.args.float64ListArgs {
+	for _, arg := range b.args.float64ListArgs {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		float64ListArgConfigs = append(float64ListArgConfigs, argConfig)
 	}
@@ -311,10 +323,10 @@ func (c *commandBuilder) configureFloat64ListArgs() []*argConfig {
 	return float64ListArgConfigs
 }
 
-func (c *commandBuilder) configureIntArgs() []*argConfig {
+func (b *commandBuilder) configureIntArgs() []*argConfig {
 	var intArgConfigs []*argConfig
 
-	for _, arg := range c.args.intArgs {
+	for _, arg := range b.args.intArgs {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		intArgConfigs = append(intArgConfigs, argConfig)
 	}
@@ -322,10 +334,10 @@ func (c *commandBuilder) configureIntArgs() []*argConfig {
 	return intArgConfigs
 }
 
-func (c *commandBuilder) configureIntListArgs() []*argConfig {
+func (b *commandBuilder) configureIntListArgs() []*argConfig {
 	var intListArgConfigs []*argConfig
 
-	for _, arg := range c.args.intListArgs {
+	for _, arg := range b.args.intListArgs {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		intListArgConfigs = append(intListArgConfigs, argConfig)
 	}
@@ -333,10 +345,10 @@ func (c *commandBuilder) configureIntListArgs() []*argConfig {
 	return intListArgConfigs
 }
 
-func (c *commandBuilder) configureInt64Args() []*argConfig {
+func (b *commandBuilder) configureInt64Args() []*argConfig {
 	var int64ArgConfigs []*argConfig
 
-	for _, arg := range c.args.int64Args {
+	for _, arg := range b.args.int64Args {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		int64ArgConfigs = append(int64ArgConfigs, argConfig)
 	}
@@ -344,10 +356,10 @@ func (c *commandBuilder) configureInt64Args() []*argConfig {
 	return int64ArgConfigs
 }
 
-func (c *commandBuilder) configureInt64ListArgs() []*argConfig {
+func (b *commandBuilder) configureInt64ListArgs() []*argConfig {
 	var int64ListArgConfigs []*argConfig
 
-	for _, arg := range c.args.int64ListArgs {
+	for _, arg := range b.args.int64ListArgs {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		int64ListArgConfigs = append(int64ListArgConfigs, argConfig)
 	}
@@ -355,10 +367,10 @@ func (c *commandBuilder) configureInt64ListArgs() []*argConfig {
 	return int64ListArgConfigs
 }
 
-func (c *commandBuilder) configureStringArgs() []*argConfig {
+func (b *commandBuilder) configureStringArgs() []*argConfig {
 	var stringArgConfigs []*argConfig
 
-	for _, arg := range c.args.stringArgs {
+	for _, arg := range b.args.stringArgs {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		stringArgConfigs = append(stringArgConfigs, argConfig)
 	}
@@ -366,10 +378,10 @@ func (c *commandBuilder) configureStringArgs() []*argConfig {
 	return stringArgConfigs
 }
 
-func (c *commandBuilder) configureStringListArgs() []*argConfig {
+func (b *commandBuilder) configureStringListArgs() []*argConfig {
 	var stringListArgConfigs []*argConfig
 
-	for _, arg := range c.args.stringListArgs {
+	for _, arg := range b.args.stringListArgs {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		stringListArgConfigs = append(stringListArgConfigs, argConfig)
 	}
@@ -377,10 +389,10 @@ func (c *commandBuilder) configureStringListArgs() []*argConfig {
 	return stringListArgConfigs
 }
 
-func (c *commandBuilder) configureUintArgs() []*argConfig {
+func (b *commandBuilder) configureUintArgs() []*argConfig {
 	var uintArgConfigs []*argConfig
 
-	for _, arg := range c.args.uintArgs {
+	for _, arg := range b.args.uintArgs {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		uintArgConfigs = append(uintArgConfigs, argConfig)
 	}
@@ -388,10 +400,10 @@ func (c *commandBuilder) configureUintArgs() []*argConfig {
 	return uintArgConfigs
 }
 
-func (c *commandBuilder) configureUintListArgs() []*argConfig {
+func (b *commandBuilder) configureUintListArgs() []*argConfig {
 	var uintListArgConfigs []*argConfig
 
-	for _, arg := range c.args.uintListArgs {
+	for _, arg := range b.args.uintListArgs {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		uintListArgConfigs = append(uintListArgConfigs, argConfig)
 	}
@@ -399,10 +411,10 @@ func (c *commandBuilder) configureUintListArgs() []*argConfig {
 	return uintListArgConfigs
 }
 
-func (c *commandBuilder) configureUint64Args() []*argConfig {
+func (b *commandBuilder) configureUint64Args() []*argConfig {
 	var uint64ArgConfigs []*argConfig
 
-	for _, arg := range c.args.uint64Args {
+	for _, arg := range b.args.uint64Args {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		uint64ArgConfigs = append(uint64ArgConfigs, argConfig)
 	}
@@ -410,10 +422,10 @@ func (c *commandBuilder) configureUint64Args() []*argConfig {
 	return uint64ArgConfigs
 }
 
-func (c *commandBuilder) configureUint64ListArgs() []*argConfig {
+func (b *commandBuilder) configureUint64ListArgs() []*argConfig {
 	var uint64ListArgConfigs []*argConfig
 
-	for _, arg := range c.args.uint64ListArgs {
+	for _, arg := range b.args.uint64ListArgs {
 		argConfig := newArgConfig(arg.commandArg, arg.value)
 		uint64ListArgConfigs = append(uint64ListArgConfigs, argConfig)
 	}
@@ -421,10 +433,10 @@ func (c *commandBuilder) configureUint64ListArgs() []*argConfig {
 	return uint64ListArgConfigs
 }
 
-func (c *commandBuilder) configureSubcommands() []*command {
+func (b *commandBuilder) configureSubcommands() []*command {
 	var subcommandConfigs []*command
 
-	for _, subCmd := range c.subcommands {
+	for _, subCmd := range b.subcommands {
 		subcommandConfigs = append(subcommandConfigs, subCmd.Build())
 	}
 

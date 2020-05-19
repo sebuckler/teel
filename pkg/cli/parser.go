@@ -27,7 +27,7 @@ func (p *parser) Parse() ([]*parsedCommand, error) {
 
 	if p.helpMode {
 		rootCmd.HelpMode = p.helpMode
-		rootCmd.HelpFunc = p.helpFunc
+		rootCmd.HelpCommand = p.HelpCommand
 	}
 
 	return p.parsedCommands, nil
@@ -60,14 +60,14 @@ func (p *parser) parseCommands(a []string, c *command) *parsedCommand {
 
 func (p *parser) newParsedCommand(c *command) *parsedCommand {
 	return &parsedCommand{
-		args:       []string{},
-		argConfigs: c.Args,
-		command:    c,
-		Context:    c.Context,
-		HelpFunc:   c.HelpFunc,
-		Name:       c.Name,
-		Run:        c.Run,
-		Syntax:     p.argSyntax,
+		args:        []string{},
+		argConfigs:  c.Args,
+		command:     c,
+		Context:     c.Context,
+		HelpCommand: c,
+		Name:        c.Name,
+		Run:         c.Run,
+		Syntax:      p.argSyntax,
 	}
 }
 
@@ -136,8 +136,8 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 
 	for _, arg := range c.parsedArgs {
 		if arg.name == "help" || arg.name == "h" {
-			if c.HelpFunc != nil {
-				p.helpFunc = c.HelpFunc
+			if c.HelpCommand != nil {
+				p.HelpCommand = c.command
 			}
 
 			p.helpMode = true
@@ -153,6 +153,13 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 	}
 
 	return nil
+}
+
+func newWalker(c *command) CommandWalker {
+	return &commandWalker{
+		root: c,
+		path: c.Subcommands,
+	}
 }
 
 func (w *commandWalker) Walk(a string) *command {
@@ -177,13 +184,6 @@ func (w *commandWalker) updatePath(c *command) {
 	}
 
 	w.path = walkablePath
-}
-
-func newWalker(c *command) *commandWalker {
-	return &commandWalker{
-		root: c,
-		path: c.Subcommands,
-	}
 }
 
 func getGnuRules() []argParserRule {

@@ -110,7 +110,7 @@ type argConfig struct {
 	Value      interface{}
 }
 
-type HelpFunc func(s ArgSyntax, w io.Writer) error
+type HelpFunc func(c *command, s ArgSyntax, w io.Writer) error
 
 type RunFunc func(ctx context.Context, o []string)
 
@@ -123,11 +123,6 @@ type command struct {
 	Operands    []string
 	Run         RunFunc
 	Subcommands []*command
-}
-
-type commandWalker struct {
-	root *command
-	path []*command
 }
 
 type parsedArg struct {
@@ -143,7 +138,7 @@ type parsedCommand struct {
 	argConfigs  []*argConfig
 	command     *command
 	Context     context.Context
-	HelpFunc    HelpFunc
+	HelpCommand *command
 	HelpMode    bool
 	Name        string
 	Operands    []string
@@ -167,6 +162,15 @@ type argParserRule func(a *string, i int, c *argParserContext) (bool, error)
 
 type argParserInit func(a []string) *argParserContext
 
+type CommandWalker interface {
+	Walk(a string) *command
+}
+
+type commandWalker struct {
+	root *command
+	path []*command
+}
+
 type ArgDefinition struct {
 	Name       string
 	ShortName  rune
@@ -175,7 +179,9 @@ type ArgDefinition struct {
 	Required   bool
 }
 
-type argAdder interface {
+type CommandBuilder interface {
+	AddSubcommand(c ...CommandBuilder)
+	AddRunFunc(r RunFunc)
 	AddBoolArg(p *bool, a *ArgDefinition)
 	AddFloat64Arg(p *float64, a *ArgDefinition)
 	AddFloat64ListArg(p *[]float64, a *ArgDefinition)
@@ -189,12 +195,6 @@ type argAdder interface {
 	AddUintListArg(p *[]uint, a *ArgDefinition)
 	AddUint64Arg(p *uint64, a *ArgDefinition)
 	AddUint64ListArg(p *[]uint64, a *ArgDefinition)
-}
-
-type CommandBuilder interface {
-	AddSubcommand(c ...CommandBuilder)
-	AddRunFunc(r RunFunc)
-	argAdder
 	Build() *command
 }
 
@@ -213,7 +213,7 @@ type Parser interface {
 type parser struct {
 	argSyntax      ArgSyntax
 	builder        CommandBuilder
-	helpFunc       HelpFunc
+	HelpCommand    *command
 	helpMode       bool
 	parsedCommands []*parsedCommand
 }

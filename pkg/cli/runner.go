@@ -31,7 +31,9 @@ func (r *runner) Run() error {
 	}
 
 	if rootCmd.HelpMode {
-		return rootCmd.HelpFunc(rootCmd.Syntax, r.writer)
+		helpCmd := rootCmd.HelpCommand
+
+		return helpCmd.HelpFunc(helpCmd, rootCmd.Syntax, r.writer)
 	}
 
 	if rootCmd.VersionMode {
