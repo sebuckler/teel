@@ -15,7 +15,7 @@ func NewParser(a ArgSyntax, c CommandBuilder) Parser {
 	}
 }
 
-func (p *parser) Parse() (*parsedCommand, error) {
+func (p *parser) Parse() ([]*parsedCommand, error) {
 	args := os.Args[1:]
 	rootCmd := p.parseCommands(args, p.builder.Build())
 
@@ -30,7 +30,7 @@ func (p *parser) Parse() (*parsedCommand, error) {
 		rootCmd.HelpFunc = p.helpFunc
 	}
 
-	return rootCmd, nil
+	return p.parsedCommands, nil
 }
 
 func (p *parser) parseCommands(a []string, c *command) *parsedCommand {

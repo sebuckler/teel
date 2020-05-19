@@ -89,15 +89,20 @@ func shouldRunRootCmdRun(t *testing.T, n string) {
 }
 
 func shouldRunSubcommandRuns(t *testing.T, n string) {
-	os.Args = []string{"testcmd", "foo", "bar"}
+	os.Args = []string{"testcmd", "foo", "baz", "bar"}
 	var runResults []int
 	var strBuilder strings.Builder
 	writer := bufio.NewWriter(&strBuilder)
 	cmd := cli.NewCommand("testcmd", context.Background())
+	subsub1 := cli.NewCommand("baz", context.Background())
+	subsub1.AddRunFunc(func(context.Context, []string) {
+		runResults = append(runResults, 1)
+	})
 	sub1 := cli.NewCommand("foo", context.Background())
 	sub1.AddRunFunc(func(context.Context, []string) {
 		runResults = append(runResults, 1)
 	})
+	sub1.AddSubcommand(subsub1)
 	sub2 := cli.NewCommand("bar", context.Background())
 	sub2.AddRunFunc(func(context.Context, []string) {
 		runResults = append(runResults, 1)
@@ -107,8 +112,8 @@ func shouldRunSubcommandRuns(t *testing.T, n string) {
 	runner := cli.NewRunner(parser, "v1", writer)
 	runErr := runner.Run()
 
-	if runErr != nil || len(runResults) != 2 {
+	if runErr != nil || len(runResults) != 3 {
 		t.Fail()
-		t.Log(n + ": failed to run incorrectly errored on subcommand runs")
+		t.Log(n + ": incorrectly errored on subcommand runs")
 	}
 }

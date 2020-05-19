@@ -1,14 +1,17 @@
 package executor
 
 import (
+	"fmt"
 	"github.com/sebuckler/teel/internal/logger"
 	"github.com/sebuckler/teel/pkg/cli"
 	"os"
 	"os/signal"
 )
 
+type ExitFunc func()
+
 type Executor interface {
-	Execute()
+	Execute() ExitFunc
 }
 
 type executor struct {
@@ -23,7 +26,7 @@ func New(l logger.Logger, r cli.Runner) Executor {
 	}
 }
 
-func (e *executor) Execute() {
+func (e *executor) Execute() ExitFunc {
 	sigChan := make(chan os.Signal, 1)
 	done := make(chan error, 1)
 
@@ -40,6 +43,10 @@ func (e *executor) Execute() {
 
 	if err := <-done; err != nil {
 		e.logger.Errorf("Error: %v\n", err)
-		os.Exit(1)
+		fmt.Printf("Error: %v\n", err)
+
+		return func() { os.Exit(1) }
 	}
+
+	return func() { os.Exit(0) }
 }

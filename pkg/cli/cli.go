@@ -207,7 +207,7 @@ type commandBuilder struct {
 }
 
 type Parser interface {
-	Parse() (*parsedCommand, error)
+	Parse() ([]*parsedCommand, error)
 }
 
 type parser struct {

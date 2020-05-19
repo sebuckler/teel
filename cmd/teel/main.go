@@ -23,9 +23,10 @@ func main() {
 		parser := cli.NewParser(cli.GNU, cmdBuilder.Build())
 		runner := cli.NewRunner(parser, version, os.Stdout)
 		cmdExecutor := executor.New(fileLogger, runner)
-
-		cmdExecutor.Execute()
+		exit := cmdExecutor.Execute()
 		_ = f.Flush()
+
+		exit()
 	})
 
 	if streamErr != nil {

@@ -65,9 +65,9 @@ func shouldParseSubcommands(t *testing.T, n string) {
 	sub1.AddSubcommand(sub2)
 	cmd.AddSubcommand(sub1)
 	parser := cli.NewParser(cli.POSIX, cmd)
-	parsedCmd, err := parser.Parse()
+	parsedCommands, err := parser.Parse()
 
-	if err != nil || len(parsedCmd.Subcommands) == 0 || len(parsedCmd.Subcommands[0].Subcommands) == 0 {
+	if err != nil || len(parsedCommands) != 3 {
 		t.Fail()
 		t.Log(n + ": did not parse subcommands properly")
 	}
@@ -85,9 +85,9 @@ func shouldSetHelpModeTrueIfHelpArgExists(t *testing.T, n string) {
 				os.Args = args
 				cmd := cli.NewCommand("testcmd", context.Background())
 				parser := cli.NewParser(syntax, cmd)
-				parsedCommand, err := parser.Parse()
+				parsedCommands, err := parser.Parse()
 
-				if err != nil || (parsedCommand != nil && !parsedCommand.HelpMode) {
+				if err != nil || (len(parsedCommands) == 0 && !parsedCommands[0].HelpMode) {
 					t.Fail()
 					t.Log(n + ": failed to parse help args: " + name)
 				}
