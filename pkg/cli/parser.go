@@ -155,7 +155,7 @@ func (p *parser) bindArgs(c *parsedCommand) error {
 	return nil
 }
 
-func newWalker(c *command) CommandWalker {
+func newWalker(c *command) *commandWalker {
 	return &commandWalker{
 		root: c,
 		path: c.Subcommands,

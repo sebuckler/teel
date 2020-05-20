@@ -8,10 +8,8 @@ import (
 	"os/signal"
 )
 
-type ExitFunc func()
-
 type Executor interface {
-	Execute() ExitFunc
+	Execute() error
 }
 
 type executor struct {
@@ -26,7 +24,7 @@ func New(l logger.Logger, r cli.Runner) Executor {
 	}
 }
 
-func (e *executor) Execute() ExitFunc {
+func (e *executor) Execute() error {
 	sigChan := make(chan os.Signal, 1)
 	done := make(chan error, 1)
 
@@ -42,11 +40,19 @@ func (e *executor) Execute() ExitFunc {
 	}()
 
 	if err := <-done; err != nil {
-		e.logger.Errorf("Error: %v\n", err)
-		fmt.Printf("Error: %v\n", err)
+		e.logger.Errorf("%v\n", err)
 
-		return func() { os.Exit(1) }
+		return err
 	}
 
-	return func() { os.Exit(0) }
+	return nil
+}
+
+func Exit(err error) {
+	if err != nil {
+		fmt.Errorf("Error: %v\n", err)
+		os.Exit(1)
+	}
+
+	os.Exit(0)
 }

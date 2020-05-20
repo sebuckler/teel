@@ -162,10 +162,6 @@ type argParserRule func(a *string, i int, c *argParserContext) (bool, error)
 
 type argParserInit func(a []string) *argParserContext
 
-type CommandWalker interface {
-	Walk(a string) *command
-}
-
 type commandWalker struct {
 	root *command
 	path []*command
